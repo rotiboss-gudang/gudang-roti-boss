@@ -1,0 +1,245 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout active="bahan">
+  <div class="card">
+    <button id="btnToggleForm" class="btn-primary">➕ Tambah Bahan Baru</button>
+  </div>
+
+  <div class="card" id="formCard" style="display:none;">
+    <h2 style="margin-bottom:12px;">Bahan Baru</h2>
+    <label>Nama Bahan *</label>
+    <input type="text" id="fNama" placeholder="misal: Tepung Terigu Protein Tinggi" />
+
+    <label>Kategori</label>
+    <input type="text" id="fKategori" placeholder="misal: Tepung, Gula, Lemak" />
+
+    <div class="row2">
+      <div>
+        <label>Satuan</label>
+        <input type="text" id="fSatuan" placeholder="kg / L / butir" />
+      </div>
+      <div>
+        <label>Stok Awal</label>
+        <input type="number" id="fStokAwal" placeholder="0" />
+      </div>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label>Min. Stok</label>
+        <input type="number" id="fMinStok" placeholder="0" />
+      </div>
+      <div>
+        <label>Expired (opsional)</label>
+        <input type="date" id="fExp" />
+      </div>
+    </div>
+
+    <label>SKU (kosongkan buat auto-generate)</label>
+    <input type="text" id="fSku" placeholder="misal: TEP004, atau scan barcode kemasan" />
+    <button type="button" id="btnScan" class="btn-scan">📷 Scan Barcode buat isi SKU</button>
+    <div id="reader" class="hidden"></div>
+    <div id="scanMsg" class="scanMsg"></div>
+
+    <div id="formMsg"></div>
+    <button id="btnSubmit" class="btn-primary" style="margin-top:12px;">Simpan Bahan</button>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom:12px;">📦 Semua Bahan (<span id="totalCount">-</span>)</h2>
+    <input type="text" id="searchBox" placeholder="Cari nama bahan..." style="margin-bottom:12px; width:100%;" />
+    <div id="bahanList">Memuat...</div>
+  </div>
+
+  <style is:global>
+    label { display: block; font-size: 0.8rem; color: #8a7566; margin: 10px 0 4px; }
+    input[type="text"], input[type="number"], input[type="date"] {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa;
+    }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-primary {
+      width: 100%; padding: 14px; background: #5c3d2e; color: #fff; border: none; border-radius: 12px; font-weight: 600;
+    }
+    .btn-primary:disabled { opacity: 0.6; }
+    .btn-scan { width: 100%; padding: 12px; border: 2px dashed #5c3d2e; background: #fff; color: #5c3d2e; border-radius: 12px; font-weight: 600; margin-top: 8px; }
+    #reader { width: 100% !important; border-radius: 16px; overflow: hidden; margin-top: 10px; }
+    #reader video { border-radius: 16px; }
+    .hidden { display: none; }
+    .scanMsg { font-size: 0.8rem; color: #2e7d32; margin-top: 6px; }
+    .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .item:last-child { border-bottom: none; }
+    .item .nama { font-weight: 600; font-size: 0.9rem; }
+    .item .sub { font-size: 0.78rem; color: #8a7566; }
+    .tag { font-size: 0.72rem; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+    .tag.aman { background: #e3f2e3; color: #2e7d32; }
+    .tag.menipis { background: #fdecd2; color: #b5651d; }
+    .tag.expired { background: #fbdcdc; color: #b52a2a; }
+    #formMsg { font-size: 0.82rem; margin-top: 8px; }
+    #formMsg.ok { color: #2e7d32; }
+    #formMsg.err { color: #c62828; }
+  </style>
+
+  <script src="https://unpkg.com/html5-qrcode" is:inline></script>
+
+  <script>
+    const API_URL = import.meta.env.PUBLIC_API_URL;
+    let allBahan = [];
+    let html5QrCode = null;
+    let scanning = false;
+
+    document.getElementById('btnToggleForm').addEventListener('click', () => {
+      const formCard = document.getElementById('formCard');
+      formCard.style.display = formCard.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.getElementById('btnScan').addEventListener('click', async () => {
+      const readerDiv = document.getElementById('reader');
+      const btnScan = document.getElementById('btnScan');
+      const scanMsg = document.getElementById('scanMsg');
+      scanMsg.textContent = '';
+
+      if (scanning) {
+        await html5QrCode.stop();
+        readerDiv.classList.add('hidden');
+        btnScan.textContent = '📷 Scan Barcode buat isi SKU';
+        scanning = false;
+        return;
+      }
+
+      readerDiv.classList.remove('hidden');
+      btnScan.textContent = '⏹️ Stop Scan';
+      html5QrCode = new Html5Qrcode("reader");
+
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 220 },
+          (decodedText) => {
+            document.getElementById('fSku').value = decodedText.trim();
+            scanMsg.textContent = `Barcode "${decodedText}" berhasil diisi ke SKU`;
+            html5QrCode.stop().then(() => {
+              readerDiv.classList.add('hidden');
+              btnScan.textContent = '📷 Scan Barcode buat isi SKU';
+              scanning = false;
+            });
+          },
+          () => { /* ignore per-frame decode error */ }
+        );
+        scanning = true;
+      } catch (err) {
+        scanMsg.textContent = 'Gagal akses kamera: ' + err;
+        scanMsg.style.color = '#c62828';
+        readerDiv.classList.add('hidden');
+        btnScan.textContent = '📷 Scan Barcode buat isi SKU';
+      }
+    });
+
+    function tagClass(status) {
+      if (status === 'MENIPIS') return 'menipis';
+      if (status === 'EXPIRED' || status === 'EXPIRED_SOON') return 'expired';
+      return 'aman';
+    }
+    function tagText(p) {
+      if (p.status === 'MENIPIS') return 'Menipis';
+      if (p.status === 'EXPIRED') return 'Expired';
+      if (p.status === 'EXPIRED_SOON') return `Exp ${p.expired}`;
+      return 'Aman';
+    }
+
+    function renderList(list) {
+      const el = document.getElementById('bahanList');
+      document.getElementById('totalCount').textContent = list.length;
+      if (list.length === 0) {
+        el.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;">Gak ada bahan yang cocok.</p>';
+        return;
+      }
+      el.innerHTML = list.map(p => `
+        <div class="item">
+          <div>
+            <div class="nama">${p.nama}</div>
+            <div class="sub">${p.sku} | Stok: ${p.stok} ${p.satuan} | Min: ${p.minStok}</div>
+          </div>
+          <span class="tag ${tagClass(p.status)}">${tagText(p)}</span>
+        </div>
+      `).join('');
+    }
+
+    async function loadBahan() {
+      try {
+        const res = await fetch(`${API_URL}?action=getMasterData`);
+        allBahan = await res.json();
+        renderList(allBahan);
+      } catch (err) {
+        document.getElementById('bahanList').innerHTML = '<p style="color:#c62828;">Gagal memuat data.</p>';
+      }
+    }
+
+    document.getElementById('searchBox').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      renderList(allBahan.filter(p => p.nama.toLowerCase().includes(q)));
+    });
+
+    document.getElementById('btnSubmit').addEventListener('click', async () => {
+      const nama = document.getElementById('fNama').value.trim();
+      const msgEl = document.getElementById('formMsg');
+      const btn = document.getElementById('btnSubmit');
+
+      if (!nama) {
+        msgEl.textContent = 'Nama bahan wajib diisi';
+        msgEl.className = 'err';
+        return;
+      }
+
+      const payload = {
+        action: 'addBahanBaru',
+        data: {
+          nama,
+          kategori: document.getElementById('fKategori').value.trim(),
+          satuan: document.getElementById('fSatuan').value.trim(),
+          stokAwal: document.getElementById('fStokAwal').value,
+          minStok: document.getElementById('fMinStok').value,
+          exp: document.getElementById('fExp').value,
+          sku: document.getElementById('fSku').value.trim()
+        }
+      };
+
+      btn.disabled = true;
+      msgEl.textContent = 'Menyimpan...';
+      msgEl.className = '';
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          msgEl.textContent = result.message;
+          msgEl.className = 'ok';
+          document.getElementById('fNama').value = '';
+          document.getElementById('fKategori').value = '';
+          document.getElementById('fSatuan').value = '';
+          document.getElementById('fStokAwal').value = '';
+          document.getElementById('fMinStok').value = '';
+          document.getElementById('fExp').value = '';
+          document.getElementById('fSku').value = '';
+          document.getElementById('scanMsg').textContent = '';
+          await loadBahan();
+        } else {
+          msgEl.textContent = result.message;
+          msgEl.className = 'err';
+        }
+      } catch (err) {
+        msgEl.textContent = 'Gagal terhubung ke server';
+        msgEl.className = 'err';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    loadBahan();
+  </script>
+</Layout>

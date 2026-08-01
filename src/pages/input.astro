@@ -1,0 +1,329 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout active="input">
+  <div class="card">
+    <div class="tipeRow">
+      <button class="tipeBtn active" data-tipe="Masuk">📥 Masuk</button>
+      <button class="tipeBtn" data-tipe="Keluar">📤 Keluar</button>
+      <button class="tipeBtn" data-tipe="Rusak-Expired">🗑️ Rusak/Exp</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Petugas</label>
+    <select id="fPetugas"><option value="">Memuat...</option></select>
+
+    <label>Bahan Baku</label>
+    <div class="searchWrap">
+      <input type="text" id="fBahanSearch" placeholder="Ketik nama, atau tap buat lihat semua..." autocomplete="off" />
+      <div id="fBahanResults" class="searchResults hidden"></div>
+    </div>
+
+    <button type="button" id="btnScan" class="btn-scan">📷 Scan Barcode</button>
+    <div id="reader" class="hidden"></div>
+    <div id="scanMsg" class="scanMsg"></div>
+
+    <div id="stokInfo" class="stokInfo"></div>
+
+    <label id="expLabel" style="display:none;">Tanggal Expired (opsional)</label>
+    <input type="date" id="fExp" style="display:none;" />
+
+    <label>Jumlah</label>
+    <div class="qtyRow">
+      <button id="qtyMinus" class="qtyBtn">−</button>
+      <input type="number" id="fQty" value="1" min="0.1" step="0.1" />
+      <button id="qtyPlus" class="qtyBtn">+</button>
+    </div>
+
+    <label>Keterangan (opsional)</label>
+    <input type="text" id="fKeterangan" placeholder="misal: retur supplier, produksi harian" />
+
+    <div id="formMsg"></div>
+    <button id="btnSubmit" class="btn-primary" style="margin-top:12px;">Simpan Transaksi</button>
+  </div>
+
+  <style is:global>
+    .tipeRow { display: flex; gap: 8px; }
+    .tipeBtn { flex: 1; padding: 12px 4px; border: 2px solid #eee; background: #fff; border-radius: 12px; font-size: 0.85rem; font-weight: 600; color: #8a7566; }
+    .tipeBtn.active { border-color: #5c3d2e; color: #5c3d2e; background: #f2ece4; }
+    label { display: block; font-size: 0.8rem; color: #8a7566; margin: 12px 0 4px; }
+    select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; }
+    input[type="text"], input[type="number"], input[type="date"] {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa;
+    }
+    .searchWrap { position: relative; }
+    .searchResults {
+      position: relative; margin-top: 4px; max-height: 240px; overflow-y: auto;
+      border: 1px solid #ddd; border-radius: 10px; background: #fff;
+    }
+    .searchResults.hidden { display: none; }
+    .searchItem { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.88rem; }
+    .searchItem:last-child { border-bottom: none; }
+    .searchItem .nama { font-weight: 600; color: #4a2f22; }
+    .searchItem .sub { font-size: 0.75rem; color: #8a7566; }
+    .searchItem:active { background: #f2ece4; }
+    .searchEmpty { padding: 12px; font-size: 0.82rem; color: #8a7566; text-align: center; }
+    .btn-scan { width: 100%; padding: 12px; border: 2px dashed #5c3d2e; background: #fff; color: #5c3d2e; border-radius: 12px; font-weight: 600; margin-top: 8px; }
+    #reader { width: 100% !important; border-radius: 16px; overflow: hidden; margin-top: 10px; }
+    #reader video { border-radius: 16px; }
+    .hidden { display: none; }
+    .scanMsg { font-size: 0.8rem; margin-top: 6px; }
+    .stokInfo { font-size: 0.8rem; color: #8a7566; margin-top: 8px; }
+    .qtyRow { display: flex; align-items: center; gap: 10px; }
+    .qtyRow input { text-align: center; flex: 1; }
+    .qtyBtn { width: 44px; height: 44px; border-radius: 50%; border: none; background: #f2ece4; color: #5c3d2e; font-size: 1.3rem; font-weight: 700; }
+    .btn-primary { width: 100%; padding: 14px; background: #5c3d2e; color: #fff; border: none; border-radius: 12px; font-weight: 600; }
+    .btn-primary:disabled { opacity: 0.6; }
+    #formMsg { font-size: 0.85rem; margin-top: 10px; }
+    #formMsg.ok { color: #2e7d32; }
+    #formMsg.err { color: #c62828; }
+  </style>
+
+  <script src="https://unpkg.com/html5-qrcode" is:inline></script>
+
+  <script>
+    const API_URL = import.meta.env.PUBLIC_API_URL;
+    let currentTipe = "Masuk";
+    let allBahan = [];
+    let selectedSku = "";
+    let forceNegative = false;
+    let html5QrCode = null;
+    let scanning = false;
+
+    document.querySelectorAll('.tipeBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tipeBtn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTipe = btn.dataset.tipe;
+        forceNegative = false;
+        const isMasuk = currentTipe === 'Masuk';
+        document.getElementById('expLabel').style.display = isMasuk ? 'block' : 'none';
+        document.getElementById('fExp').style.display = isMasuk ? 'block' : 'none';
+        updateStokInfo();
+      });
+    });
+
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API_URL}?action=getUsers`);
+        const users = await res.json();
+        const sel = document.getElementById('fPetugas');
+        sel.innerHTML = '<option value="">Pilih petugas...</option>' +
+          users.map(u => `<option value="${u.nama}">${u.nama}</option>`).join('');
+      } catch (err) {
+        document.getElementById('fPetugas').innerHTML = '<option value="">Gagal memuat</option>';
+      }
+    }
+
+    async function loadBahan() {
+      try {
+        const res = await fetch(`${API_URL}?action=getMasterData`);
+        allBahan = await res.json();
+      } catch (err) {
+        allBahan = [];
+      }
+    }
+
+    function renderResults(list) {
+      const el = document.getElementById('fBahanResults');
+      if (list.length === 0) {
+        el.innerHTML = '<div class="searchEmpty">Gak ketemu bahan yang cocok</div>';
+        return;
+      }
+      el.innerHTML = list.map(p => `
+        <div class="searchItem" data-sku="${p.sku}">
+          <div class="nama">${p.nama}</div>
+          <div class="sub">${p.sku} | Stok: ${p.stok} ${p.satuan}</div>
+        </div>
+      `).join('');
+      el.querySelectorAll('.searchItem').forEach(item => {
+        item.addEventListener('click', () => {
+          const sku = item.dataset.sku;
+          const p = allBahan.find(x => x.sku === sku);
+          selectSku(sku, p ? p.nama : sku);
+        });
+      });
+    }
+
+    function selectSku(sku, label) {
+      selectedSku = sku;
+      document.getElementById('fBahanSearch').value = label;
+      document.getElementById('fBahanResults').classList.add('hidden');
+      updateStokInfo();
+    }
+
+    const searchInput = document.getElementById('fBahanSearch');
+    const resultsEl = document.getElementById('fBahanResults');
+
+    function refreshResults() {
+      const q = searchInput.value.toLowerCase().trim();
+      const filtered = q === "" ? allBahan : allBahan.filter(p => p.nama.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
+      renderResults(filtered);
+      resultsEl.classList.remove('hidden');
+    }
+
+    searchInput.addEventListener('focus', refreshResults);
+    searchInput.addEventListener('input', () => {
+      selectedSku = "";
+      refreshResults();
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.searchWrap')) {
+        resultsEl.classList.add('hidden');
+      }
+    });
+
+    function updateStokInfo() {
+      const info = document.getElementById('stokInfo');
+      const p = allBahan.find(x => x.sku === selectedSku);
+      if (!p) { info.textContent = ''; return; }
+      info.textContent = `Stok saat ini: ${p.stok} ${p.satuan} (Min: ${p.minStok})`;
+    }
+
+    async function stopScanner() {
+      if (html5QrCode) {
+        try {
+          await html5QrCode.stop();
+          await html5QrCode.clear();
+        } catch (e) { /* ignore, may already be stopped */ }
+      }
+      document.getElementById('reader').classList.add('hidden');
+      document.getElementById('btnScan').textContent = '📷 Scan Barcode';
+      scanning = false;
+    }
+
+    document.getElementById('btnScan').addEventListener('click', async () => {
+      const readerDiv = document.getElementById('reader');
+      const btnScan = document.getElementById('btnScan');
+      const scanMsg = document.getElementById('scanMsg');
+      scanMsg.textContent = '';
+
+      if (scanning) {
+        await stopScanner();
+        return;
+      }
+
+      readerDiv.classList.remove('hidden');
+      btnScan.textContent = '⏹️ Stop Scan';
+      await new Promise(r => setTimeout(r, 100));
+
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+      }
+
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 220 },
+          (decodedText) => {
+            const match = allBahan.find(p => p.sku.toLowerCase() === decodedText.trim().toLowerCase());
+            if (match) {
+              selectSku(match.sku, match.nama);
+              scanMsg.style.color = '#2e7d32';
+              scanMsg.textContent = `Ketemu: ${match.nama}`;
+              setTimeout(() => { stopScanner(); }, 50);
+            } else {
+              scanMsg.style.color = '#8a7566';
+              scanMsg.textContent = `Kebaca "${decodedText}" (gak cocok), nyoba lagi...`;
+            }
+          },
+          () => { /* ignore per-frame decode error */ }
+        );
+        scanning = true;
+        scanMsg.style.color = '#8a7566';
+        scanMsg.textContent = 'Kamera aktif, arahkan ke barcode...';
+      } catch (err) {
+        scanMsg.textContent = 'Gagal akses kamera: ' + err;
+        scanMsg.style.color = '#c62828';
+        readerDiv.classList.add('hidden');
+        btnScan.textContent = '📷 Scan Barcode';
+      }
+    });
+
+    document.getElementById('qtyMinus').addEventListener('click', () => {
+      const el = document.getElementById('fQty');
+      el.value = Math.max(0.1, parseFloat(el.value || '1') - 1);
+    });
+    document.getElementById('qtyPlus').addEventListener('click', () => {
+      const el = document.getElementById('fQty');
+      el.value = parseFloat(el.value || '0') + 1;
+    });
+
+    document.getElementById('btnSubmit').addEventListener('click', async () => {
+      const msgEl = document.getElementById('formMsg');
+      const btn = document.getElementById('btnSubmit');
+      const petugas = document.getElementById('fPetugas').value;
+      const sku = selectedSku;
+      const qty = document.getElementById('fQty').value;
+      const p = allBahan.find(x => x.sku === sku);
+
+      if (!petugas) { msgEl.textContent = 'Pilih petugas dulu'; msgEl.className = 'err'; return; }
+      if (!sku) { msgEl.textContent = 'Pilih bahan dulu'; msgEl.className = 'err'; return; }
+      if (!qty || parseFloat(qty) <= 0) { msgEl.textContent = 'Jumlah harus lebih dari 0'; msgEl.className = 'err'; return; }
+
+      const payload = {
+        action: 'saveTransaksi',
+        data: {
+          tipe: currentTipe,
+          sku,
+          nama: p ? p.nama : '',
+          qty,
+          satuan: p ? p.satuan : '',
+          keterangan: document.getElementById('fKeterangan').value.trim(),
+          petugas,
+          exp: currentTipe === 'Masuk' ? document.getElementById('fExp').value : '',
+          forceNegative
+        }
+      };
+
+      btn.disabled = true;
+      msgEl.textContent = 'Menyimpan...';
+      msgEl.className = '';
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          msgEl.textContent = result.message;
+          msgEl.className = 'ok';
+          document.getElementById('fQty').value = '1';
+          document.getElementById('fKeterangan').value = '';
+          document.getElementById('fExp').value = '';
+          document.getElementById('fBahanSearch').value = '';
+          selectedSku = '';
+          forceNegative = false;
+          await loadBahan();
+          updateStokInfo();
+        } else if (result.stokTersedia !== undefined) {
+          const konfirmasi = confirm(result.message + '\n\nLanjutkan tetap simpan? (stok akan jadi 0)');
+          if (konfirmasi) {
+            forceNegative = true;
+            btn.disabled = false;
+            document.getElementById('btnSubmit').click();
+            return;
+          } else {
+            msgEl.textContent = 'Dibatalkan';
+            msgEl.className = 'err';
+          }
+        } else {
+          msgEl.textContent = result.message;
+          msgEl.className = 'err';
+        }
+      } catch (err) {
+        msgEl.textContent = 'Gagal terhubung ke server';
+        msgEl.className = 'err';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    loadUsers();
+    loadBahan();
+  </script>
+</Layout>

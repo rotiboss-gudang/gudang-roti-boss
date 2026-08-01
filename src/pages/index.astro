@@ -1,0 +1,84 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout active="dashboard">
+  <div id="loading">Memuat data...</div>
+  <div id="error" style="display:none; text-align:center; padding:24px; color:#c62828;">Gagal memuat data. Cek koneksi atau URL API.</div>
+  <div id="content" style="display:none;">
+    <div class="grid" id="statGrid"></div>
+    <div class="card">
+      <h2 style="margin-bottom:12px;">⚠️ Perlu Perhatian</h2>
+      <div id="perhatianList"></div>
+    </div>
+  </div>
+
+  <style is:global>
+    .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .grid .card { text-align: center; padding: 16px 8px; margin-bottom: 0; }
+    .grid .num { font-size: 1.8rem; font-weight: 700; }
+    .grid .label { font-size: 0.75rem; color: #8a7566; margin-top: 4px; }
+    .aman { color: #2e7d32; } .menipis { color: #e07a1a; } .expired { color: #c62828; } .default { color: #4a2f22; }
+    .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .item:last-child { border-bottom: none; }
+    .item .nama { font-weight: 600; font-size: 0.9rem; }
+    .item .sub { font-size: 0.78rem; color: #8a7566; }
+    .tag { font-size: 0.72rem; padding: 4px 10px; border-radius: 20px; }
+    .tag.menipis { background: #fdecd2; color: #b5651d; }
+    .tag.expired { background: #fbdcdc; color: #b52a2a; }
+  </style>
+
+  <script>
+    const API_URL = import.meta.env.PUBLIC_API_URL;
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch(`${API_URL}?action=getDashboardData`);
+        const data = await res.json();
+
+        const stats = [
+          { num: data.totalJenis, label: "Jenis Bahan", cls: "default" },
+          { num: data.aman, label: "Stok Aman", cls: "aman" },
+          { num: data.menipis, label: "Menipis", cls: "menipis" },
+          { num: data.expired, label: "Expired", cls: "expired" },
+          { num: data.masukHariIni, label: "Masuk Hari Ini", cls: "default" },
+          { num: data.keluarHariIni, label: "Keluar Hari Ini", cls: "default" }
+        ];
+
+        document.getElementById('statGrid').innerHTML = stats.map(s => `
+          <div class="card">
+            <div class="num ${s.cls}">${s.num}</div>
+            <div class="label">${s.label}</div>
+          </div>
+        `).join('');
+
+        const perhatianEl = document.getElementById('perhatianList');
+        if (data.perhatian.length === 0) {
+          perhatianEl.innerHTML = `<p style="color:#8a7566;font-size:0.85rem;">Semua bahan aman ✅</p>`;
+        } else {
+          perhatianEl.innerHTML = data.perhatian.map(p => {
+            const tagCls = p.status === "MENIPIS" ? "menipis" : "expired";
+            const tagText = p.status === "MENIPIS" ? "Menipis" : (p.expired ? `Exp ${p.expired}` : "Expired");
+            return `
+              <div class="item">
+                <div>
+                  <div class="nama">${p.nama}</div>
+                  <div class="sub">Stok: ${p.stok} ${p.satuan} | Min: ${p.minStok}</div>
+                </div>
+                <span class="tag ${tagCls}">${tagText}</span>
+              </div>
+            `;
+          }).join('');
+        }
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+      } catch (err) {
+        console.error(err);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+      }
+    }
+
+    loadDashboard();
+  </script>
+</Layout>

@@ -1,0 +1,130 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout active="riwayat">
+  <div class="card">
+    <div class="filterRow">
+      <button class="filterBtn active" data-tipe="all">Semua</button>
+      <button class="filterBtn" data-tipe="Masuk">Masuk</button>
+      <button class="filterBtn" data-tipe="Keluar">Keluar</button>
+      <button class="filterBtn" data-tipe="Rusak-Expired">Rusak/Exp</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom:12px;">📝 Riwayat Transaksi</h2>
+    <div id="riwayatList">Memuat...</div>
+  </div>
+
+  <style is:global>
+    .filterRow { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filterBtn { flex: 1; min-width: 70px; padding: 10px 4px; border: 2px solid #eee; background: #fff; border-radius: 10px; font-size: 0.8rem; font-weight: 600; color: #8a7566; }
+    .filterBtn.active { border-color: #5c3d2e; color: #5c3d2e; background: #f2ece4; }
+    .trxItem { padding: 12px 0; border-bottom: 1px solid #eee; }
+    .trxItem:last-child { border-bottom: none; }
+    .trxItem.cancelled { opacity: 0.45; }
+    .trxTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .trxNama { font-weight: 600; font-size: 0.92rem; }
+    .trxMeta { font-size: 0.75rem; color: #8a7566; margin-top: 2px; }
+    .trxStok { font-size: 0.8rem; color: #4a2f22; margin-top: 4px; }
+    .trxTag { font-size: 0.7rem; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+    .trxTag.Masuk { background: #e3f2e3; color: #2e7d32; }
+    .trxTag.Keluar { background: #fdecd2; color: #b5651d; }
+    .trxTag.Rusak-Expired { background: #fbdcdc; color: #b52a2a; }
+    .btnUndo { margin-top: 8px; font-size: 0.75rem; padding: 6px 12px; border: 1px solid #c62828; color: #c62828; background: #fff; border-radius: 8px; }
+    .btnUndo:disabled { opacity: 0.4; }
+    .cancelledTag { font-size: 0.7rem; color: #c62828; font-weight: 600; margin-top: 6px; }
+  </style>
+
+  <script>
+    const API_URL = import.meta.env.PUBLIC_API_URL;
+    let currentFilter = "all";
+
+    document.querySelectorAll('.filterBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filterBtn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.tipe;
+        loadRiwayat();
+      });
+    });
+
+    function tagClass(tipe) {
+      return tipe;
+    }
+
+    async function loadRiwayat() {
+      const el = document.getElementById('riwayatList');
+      el.innerHTML = 'Memuat...';
+      try {
+        const url = `${API_URL}?action=getRiwayat&filterTipe=${encodeURIComponent(currentFilter)}&limit=50`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.length === 0) {
+          el.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;">Belum ada transaksi.</p>';
+          return;
+        }
+
+        el.innerHTML = data.map(t => {
+          const isCancelled = (t.keterangan || '').indexOf('[DIBATALKAN]') !== -1;
+          return `
+            <div class="trxItem ${isCancelled ? 'cancelled' : ''}">
+              <div class="trxTop">
+                <div>
+                  <div class="trxNama">${t.nama}</div>
+                  <div class="trxMeta">${t.timestamp} | ${t.petugas}</div>
+                </div>
+                <span class="trxTag ${tagClass(t.tipe)}">${t.tipe}</span>
+              </div>
+              <div class="trxStok">Qty: ${t.qty} ${t.satuan} | Stok: ${t.stokAwal} → ${t.stokAkhir}</div>
+              ${t.keterangan ? `<div class="trxMeta">${t.keterangan}</div>` : ''}
+              ${isCancelled
+                ? '<div class="cancelledTag">✕ Transaksi ini sudah dibatalkan</div>'
+                : `<button class="btnUndo" data-id="${t.idTransaksi}">↩️ Batalkan transaksi ini</button>`
+              }
+            </div>
+          `;
+        }).join('');
+
+        el.querySelectorAll('.btnUndo').forEach(btn => {
+          btn.addEventListener('click', () => undoTransaksi(btn.dataset.id, btn));
+        });
+      } catch (err) {
+        el.innerHTML = '<p style="color:#c62828;">Gagal memuat riwayat.</p>';
+      }
+    }
+
+    async function undoTransaksi(idTransaksi, btn) {
+      const konfirmasi = confirm(`Batalkan transaksi ${idTransaksi}?\n\nStok bakal dibalikin ke kondisi sebelum transaksi ini.`);
+      if (!konfirmasi) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Membatalkan...';
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'undoTransaksi', data: { idTransaksi } })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          alert(result.message);
+          loadRiwayat();
+        } else {
+          alert('Gagal: ' + result.message);
+          btn.disabled = false;
+          btn.textContent = '↩️ Batalkan transaksi ini';
+        }
+      } catch (err) {
+        alert('Gagal terhubung ke server');
+        btn.disabled = false;
+        btn.textContent = '↩️ Batalkan transaksi ini';
+      }
+    }
+
+    loadRiwayat();
+  </script>
+</Layout>
