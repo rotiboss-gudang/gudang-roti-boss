@@ -16,8 +16,8 @@ const { active } = Astro.props;
     header { background: #5c3d2e; color: #fff; text-align: center; padding: 20px 16px; }
     header h1 { font-size: 1.3rem; }
     header p { opacity: 0.85; font-size: 0.8rem; margin-top: 4px; }
-    nav { display: flex; background: #4a2f22; position: sticky; top: 0; z-index: 10; }
-    nav a { flex: 1; text-align: center; padding: 14px 4px; color: #d9c7ba; text-decoration: none; font-size: 0.82rem; font-weight: 600; }
+    nav { display: flex; background: #4a2f22; position: sticky; top: 0; z-index: 10; overflow-x: auto; }
+    nav a { flex: 1; min-width: 68px; text-align: center; padding: 14px 4px; color: #d9c7ba; text-decoration: none; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
     nav a.active { background: #f2ece4; color: #4a2f22; }
     main { padding: 16px; padding-bottom: 60px; }
     .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px; }
@@ -34,6 +34,7 @@ const { active } = Astro.props;
     <a href="/" class={active === "dashboard" ? "active" : ""}>📊 Dashboard</a>
     <a href="/input" class={active === "input" ? "active" : ""}>➕ Input</a>
     <a href="/bahan" class={active === "bahan" ? "active" : ""}>📦 Bahan</a>
+    <a href="/opname" class={active === "opname" ? "active" : ""}>📋 Opname</a>
     <a href="/riwayat" class={active === "riwayat" ? "active" : ""}>📝 Riwayat</a>
   </nav>
   <main>
