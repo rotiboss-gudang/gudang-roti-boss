@@ -9,6 +9,17 @@ import Layout from "../layouts/Layout.astro";
       <button class="filterBtn" data-tipe="Keluar">Keluar</button>
       <button class="filterBtn" data-tipe="Rusak-Expired">Rusak/Exp</button>
     </div>
+    <div class="dateRow">
+      <div>
+        <label>Dari tanggal</label>
+        <input type="date" id="startDate" />
+      </div>
+      <div>
+        <label>Sampai tanggal</label>
+        <input type="date" id="endDate" />
+      </div>
+    </div>
+    <button id="btnResetDate" class="btn-reset">✕ Hapus filter tanggal</button>
   </div>
 
   <div class="card">
@@ -20,6 +31,10 @@ import Layout from "../layouts/Layout.astro";
     .filterRow { display: flex; gap: 8px; flex-wrap: wrap; }
     .filterBtn { flex: 1; min-width: 70px; padding: 10px 4px; border: 2px solid #eee; background: #fff; border-radius: 10px; font-size: 0.8rem; font-weight: 600; color: #8a7566; }
     .filterBtn.active { border-color: #5c3d2e; color: #5c3d2e; background: #f2ece4; }
+    .dateRow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .dateRow label { display: block; font-size: 0.72rem; color: #8a7566; margin-bottom: 4px; }
+    .dateRow input[type="date"] { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.85rem; }
+    .btn-reset { width: 100%; margin-top: 10px; padding: 8px; border: 1px solid #ccc; background: #fff; color: #8a7566; border-radius: 8px; font-size: 0.78rem; }
     .trxItem { padding: 12px 0; border-bottom: 1px solid #eee; }
     .trxItem:last-child { border-bottom: none; }
     .trxItem.cancelled { opacity: 0.45; }
@@ -49,6 +64,14 @@ import Layout from "../layouts/Layout.astro";
       });
     });
 
+    document.getElementById('startDate').addEventListener('change', loadRiwayat);
+    document.getElementById('endDate').addEventListener('change', loadRiwayat);
+    document.getElementById('btnResetDate').addEventListener('click', () => {
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value = '';
+      loadRiwayat();
+    });
+
     function tagClass(tipe) {
       return tipe;
     }
@@ -57,12 +80,17 @@ import Layout from "../layouts/Layout.astro";
       const el = document.getElementById('riwayatList');
       el.innerHTML = 'Memuat...';
       try {
-        const url = `${API_URL}?action=getRiwayat&filterTipe=${encodeURIComponent(currentFilter)}&limit=50`;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        let url = `${API_URL}?action=getRiwayat&filterTipe=${encodeURIComponent(currentFilter)}&limit=50`;
+        if (startDate) url += `&startDate=${startDate}`;
+        if (endDate) url += `&endDate=${endDate}`;
+
         const res = await fetch(url);
         const data = await res.json();
 
         if (data.length === 0) {
-          el.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;">Belum ada transaksi.</p>';
+          el.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;">Gak ada transaksi di rentang ini.</p>';
           return;
         }
 
