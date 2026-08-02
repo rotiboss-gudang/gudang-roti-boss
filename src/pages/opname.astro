@@ -1,0 +1,167 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout active="opname">
+  <div class="card">
+    <label>Petugas</label>
+    <select id="fPetugas"><option value="">Pilih petugas...</option></select>
+
+    <label>Cari bahan (opsional)</label>
+    <input type="text" id="searchBox" placeholder="Ketik buat filter list di bawah..." />
+  </div>
+
+  <div class="card">
+    <div class="listHeader">
+      <span>Bahan</span>
+      <span>Stok Fisik</span>
+    </div>
+    <div id="opnameList">Memuat...</div>
+  </div>
+
+  <button id="btnSubmit" class="btn-primary">✅ Simpan Hasil Opname</button>
+  <div id="formMsg"></div>
+
+  <style is:global>
+    label { display: block; font-size: 0.8rem; color: #8a7566; margin: 10px 0 4px; }
+    label:first-child { margin-top: 0; }
+    select, input[type="text"] {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa;
+    }
+    .listHeader { display: flex; justify-content: space-between; font-size: 0.72rem; color: #8a7566; font-weight: 600; padding: 0 2px 8px; border-bottom: 1px solid #eee; margin-bottom: 4px; }
+    .opnameRow { display: flex; justify-content: space-between; align-items: center; padding: 10px 2px; border-bottom: 1px solid #f0f0f0; gap: 10px; }
+    .opnameRow:last-child { border-bottom: none; }
+    .opnameInfo { flex: 1; min-width: 0; }
+    .opnameNama { font-weight: 600; font-size: 0.88rem; }
+    .opnameSub { font-size: 0.72rem; color: #8a7566; }
+    .opnameInput { width: 84px; padding: 8px; border: 1px solid #ddd; border-radius: 8px; text-align: center; font-size: 0.95rem; }
+    .opnameInput.changed { border-color: #b5651d; background: #fdecd2; font-weight: 700; }
+    .btn-primary { width: 100%; padding: 14px; background: #5c3d2e; color: #fff; border: none; border-radius: 12px; font-weight: 600; margin-top: 4px; }
+    .btn-primary:disabled { opacity: 0.6; }
+    #formMsg { font-size: 0.85rem; margin-top: 10px; text-align: center; }
+    #formMsg.ok { color: #2e7d32; }
+    #formMsg.err { color: #c62828; }
+  </style>
+
+  <script>
+    const API_URL = import.meta.env.PUBLIC_API_URL;
+    let allBahan = [];
+
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API_URL}?action=getUsers`);
+        const users = await res.json();
+        const sel = document.getElementById('fPetugas');
+        sel.innerHTML = '<option value="">Pilih petugas...</option>' +
+          users.map(u => `<option value="${u.nama}">${u.nama}</option>`).join('');
+      } catch (err) {
+        document.getElementById('fPetugas').innerHTML = '<option value="">Gagal memuat</option>';
+      }
+    }
+
+    function renderList(list) {
+      const el = document.getElementById('opnameList');
+      if (list.length === 0) {
+        el.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;padding:8px 0;">Gak ada bahan yang cocok.</p>';
+        return;
+      }
+      el.innerHTML = list.map(p => `
+        <div class="opnameRow">
+          <div class="opnameInfo">
+            <div class="opnameNama">${p.nama}</div>
+            <div class="opnameSub">${p.sku} | Sistem: ${p.stok} ${p.satuan}</div>
+          </div>
+          <input type="number" class="opnameInput" data-sku="${p.sku}" data-original="${p.stok}" value="${p.stok}" step="0.1" />
+        </div>
+      `).join('');
+
+      el.querySelectorAll('.opnameInput').forEach(inp => {
+        inp.addEventListener('input', () => {
+          const original = parseFloat(inp.dataset.original);
+          const current = parseFloat(inp.value);
+          if (!isNaN(current) && current !== original) {
+            inp.classList.add('changed');
+          } else {
+            inp.classList.remove('changed');
+          }
+        });
+      });
+    }
+
+    async function loadBahan() {
+      try {
+        const res = await fetch(`${API_URL}?action=getMasterData`);
+        allBahan = await res.json();
+        renderList(allBahan);
+      } catch (err) {
+        document.getElementById('opnameList').innerHTML = '<p style="color:#c62828;">Gagal memuat data.</p>';
+      }
+    }
+
+    document.getElementById('searchBox').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      const filtered = q === "" ? allBahan : allBahan.filter(p => p.nama.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
+      renderList(filtered);
+    });
+
+    document.getElementById('btnSubmit').addEventListener('click', async () => {
+      const msgEl = document.getElementById('formMsg');
+      const btn = document.getElementById('btnSubmit');
+      const petugas = document.getElementById('fPetugas').value;
+
+      if (!petugas) {
+        msgEl.textContent = 'Pilih petugas dulu';
+        msgEl.className = 'err';
+        return;
+      }
+
+      const items = [];
+      document.querySelectorAll('.opnameInput').forEach(inp => {
+        const original = parseFloat(inp.dataset.original);
+        const current = parseFloat(inp.value);
+        if (!isNaN(current) && current !== original) {
+          items.push({ sku: inp.dataset.sku, stokFisik: current });
+        }
+      });
+
+      if (items.length === 0) {
+        msgEl.textContent = 'Gak ada perubahan stok yang perlu disimpan';
+        msgEl.className = 'err';
+        return;
+      }
+
+      const konfirmasi = confirm(`Simpan penyesuaian buat ${items.length} bahan?`);
+      if (!konfirmasi) return;
+
+      btn.disabled = true;
+      msgEl.textContent = 'Menyimpan...';
+      msgEl.className = '';
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'saveOpname', data: { petugas, items } })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          msgEl.textContent = result.message;
+          msgEl.className = 'ok';
+          document.getElementById('searchBox').value = '';
+          await loadBahan();
+        } else {
+          msgEl.textContent = 'Gagal: ' + result.message;
+          msgEl.className = 'err';
+        }
+      } catch (err) {
+        msgEl.textContent = 'Gagal terhubung ke server';
+        msgEl.className = 'err';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    loadUsers();
+    loadBahan();
+  </script>
+</Layout>
