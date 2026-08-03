@@ -160,8 +160,12 @@ import Layout from "../layouts/Layout.astro";
     }
 
     document.getElementById('btnPdf').addEventListener('click', async () => {
-      const msgEl = document.getElementById('pdfMsg');
-      const btn = document.getElementById('btnPdf');
+
+  const msgEl = document.getElementById('pdfMsg');
+  const btn = document.getElementById('btnPdf');
+
+  const tanggal = document.getElementById('startDate').value 
+                  || fmtDate(new Date());
 
       btn.disabled = true;
       msgEl.textContent = 'Sedang bikin PDF, tunggu sebentar...';
@@ -171,7 +175,12 @@ import Layout from "../layouts/Layout.astro";
         const res = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'generateLaporan', data: {} })
+          body: JSON.stringify({ 
+  action: 'generateLaporan',
+  data: {
+    tanggal: tanggal
+  }
+})
         });
         const result = await res.json();
 
