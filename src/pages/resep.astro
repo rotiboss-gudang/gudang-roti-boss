@@ -1,0 +1,306 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout active="resep">
+  <div class="card">
+    <h2 class="sectionTitle">🏭 Produksi</h2>
+    <label>Petugas</label>
+    <select id="prodPetugas"><option value="">Pilih petugas...</option></select>
+
+    <label>Produk</label>
+    <select id="prodProduk"><option value="">Pilih resep...</option></select>
+
+    <div id="resepPreview"></div>
+
+    <label>Jumlah Batch</label>
+    <div class="qtyRow">
+      <button id="batchMinus" class="qtyBtn">−</button>
+      <input type="number" id="prodBatch" value="1" min="1" step="1" />
+      <button id="batchPlus" class="qtyBtn">+</button>
+    </div>
+
+    <button id="btnProduksi" class="btn-primary">🏭 Produksi Sekarang</button>
+    <div id="prodMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2 class="sectionTitle">➕ Tambah Bahan ke Resep</h2>
+    <label>Nama Produk</label>
+    <input type="text" id="rProduk" placeholder="misal: Roti Tawar (produk baru atau yang udah ada)" />
+
+    <label>Bahan Baku</label>
+    <div class="searchWrap">
+      <input type="text" id="rBahanSearch" placeholder="Ketik nama bahan..." autocomplete="off" />
+      <div id="rBahanResults" class="searchResults hidden"></div>
+    </div>
+
+    <label>Qty per Batch</label>
+    <input type="number" id="rQty" placeholder="misal: 5" step="0.01" />
+
+    <button id="btnAddResep" class="btn-primary">Tambah ke Resep</button>
+    <div id="addMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2 class="sectionTitle">🧾 Semua Resep</h2>
+    <div id="resepList">Memuat...</div>
+  </div>
+
+  <style is:global>
+    .sectionTitle { margin-bottom: 12px; font-size: 1rem; }
+    label { display: block; font-size: 0.8rem; color: #8a7566; margin: 12px 0 4px; }
+    label:first-of-type { margin-top: 0; }
+    select, input[type="text"], input[type="number"] {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa;
+    }
+    .searchWrap { position: relative; }
+    .searchResults { position: relative; margin-top: 4px; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 10px; background: #fff; }
+    .searchResults.hidden { display: none; }
+    .searchItem { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; }
+    .searchItem:last-child { border-bottom: none; }
+    .searchItem:active { background: #f2ece4; }
+    .qtyRow { display: flex; align-items: center; gap: 10px; }
+    .qtyRow input { text-align: center; flex: 1; }
+    .qtyBtn { width: 44px; height: 44px; border-radius: 50%; border: none; background: #f2ece4; color: #5c3d2e; font-size: 1.3rem; font-weight: 700; }
+    .btn-primary { width: 100%; padding: 14px; background: #5c3d2e; color: #fff; border: none; border-radius: 12px; font-weight: 600; margin-top: 12px; }
+    .btn-primary:disabled { opacity: 0.6; }
+    #prodMsg, #addMsg { font-size: 0.85rem; margin-top: 10px; white-space: pre-line; }
+    #prodMsg.ok, #addMsg.ok { color: #2e7d32; }
+    #prodMsg.err, #addMsg.err { color: #c62828; font-weight: 600; }
+    #resepPreview { font-size: 0.78rem; color: #8a7566; margin-top: 8px; background: #f9f5f0; border-radius: 8px; padding: 8px 10px; }
+    #resepPreview .item { display: flex; justify-content: space-between; padding: 2px 0; }
+    .resepGroup { margin-bottom: 16px; }
+    .resepGroup:last-child { margin-bottom: 0; }
+    .resepGroupTitle { font-weight: 700; font-size: 0.92rem; margin-bottom: 6px; }
+    .resepItem { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.82rem; }
+    .resepItem:last-child { border-bottom: none; }
+    .btnDelItem { color: #c62828; background: none; border: none; font-size: 0.75rem; padding: 4px 8px; }
+  </style>
+
+  <script>
+    const API_URL = import.meta.env.PUBLIC_API_URL;
+    let allBahan = [];
+    let resepData = [];
+    let selectedBahanSku = "";
+
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API_URL}?action=getUsers`);
+        const users = await res.json();
+        const sel = document.getElementById('prodPetugas');
+        sel.innerHTML = '<option value="">Pilih petugas...</option>' +
+          users.map(u => `<option value="${u.nama}">${u.nama}</option>`).join('');
+      } catch (err) {}
+    }
+
+    async function loadBahan() {
+      try {
+        const res = await fetch(`${API_URL}?action=getMasterData`);
+        allBahan = await res.json();
+      } catch (err) { allBahan = []; }
+    }
+
+    async function loadResep() {
+      const listEl = document.getElementById('resepList');
+      const prodSel = document.getElementById('prodProduk');
+      try {
+        const res = await fetch(`${API_URL}?action=getResepList`);
+        resepData = await res.json();
+
+        prodSel.innerHTML = '<option value="">Pilih resep...</option>' +
+          resepData.map(r => `<option value="${r.produk}">${r.produk}</option>`).join('');
+
+        if (resepData.length === 0) {
+          listEl.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;">Belum ada resep. Tambahin dulu di form atas.</p>';
+          return;
+        }
+
+        listEl.innerHTML = resepData.map(r => `
+          <div class="resepGroup">
+            <div class="resepGroupTitle">${r.produk}</div>
+            ${r.bahan.map(b => `
+              <div class="resepItem">
+                <span>${b.nama} — ${b.qtyPerBatch} ${b.satuan}/batch</span>
+                <button class="btnDelItem" data-produk="${r.produk}" data-sku="${b.sku}">✕ Hapus</button>
+              </div>
+            `).join('')}
+          </div>
+        `).join('');
+
+        listEl.querySelectorAll('.btnDelItem').forEach(btn => {
+          btn.addEventListener('click', () => deleteItem(btn.dataset.produk, btn.dataset.sku));
+        });
+      } catch (err) {
+        listEl.innerHTML = '<p style="color:#c62828;">Gagal memuat resep.</p>';
+      }
+    }
+
+    async function deleteItem(produk, sku) {
+      if (!confirm(`Hapus bahan ini dari resep "${produk}"?`)) return;
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'deleteResepItem', data: { produk, sku } })
+        });
+        const result = await res.json();
+        if (result.success) {
+          await loadResep();
+          updatePreview();
+        } else {
+          alert('Gagal: ' + result.message);
+        }
+      } catch (err) {
+        alert('Gagal terhubung ke server');
+      }
+    }
+
+    // Search-combo buat pilih bahan pas nambah resep
+    const bSearch = document.getElementById('rBahanSearch');
+    const bResults = document.getElementById('rBahanResults');
+
+    function refreshBahanResults() {
+      const q = bSearch.value.toLowerCase().trim();
+      const filtered = q === "" ? allBahan : allBahan.filter(p => p.nama.toLowerCase().includes(q));
+      if (filtered.length === 0) {
+        bResults.innerHTML = '<div class="searchItem">Gak ketemu</div>';
+      } else {
+        bResults.innerHTML = filtered.map(p => `<div class="searchItem" data-sku="${p.sku}">${p.nama} (${p.satuan})</div>`).join('');
+        bResults.querySelectorAll('.searchItem').forEach(item => {
+          item.addEventListener('click', () => {
+            selectedBahanSku = item.dataset.sku;
+            bSearch.value = item.textContent;
+            bResults.classList.add('hidden');
+          });
+        });
+      }
+      bResults.classList.remove('hidden');
+    }
+    bSearch.addEventListener('focus', refreshBahanResults);
+    bSearch.addEventListener('input', () => { selectedBahanSku = ""; refreshBahanResults(); });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.searchWrap')) bResults.classList.add('hidden');
+    });
+
+    document.getElementById('btnAddResep').addEventListener('click', async () => {
+      const msgEl = document.getElementById('addMsg');
+      const btn = document.getElementById('btnAddResep');
+      const produk = document.getElementById('rProduk').value.trim();
+      const qty = document.getElementById('rQty').value;
+
+      if (!produk) { msgEl.textContent = 'Nama produk wajib diisi'; msgEl.className = 'err'; return; }
+      if (!selectedBahanSku) { msgEl.textContent = 'Pilih bahan dari daftar dulu'; msgEl.className = 'err'; return; }
+      if (!qty || parseFloat(qty) <= 0) { msgEl.textContent = 'Qty per batch harus lebih dari 0'; msgEl.className = 'err'; return; }
+
+      btn.disabled = true;
+      msgEl.textContent = 'Menyimpan...';
+      msgEl.className = '';
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'addResepBahan', data: { produk, sku: selectedBahanSku, qty } })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          msgEl.textContent = result.message;
+          msgEl.className = 'ok';
+          document.getElementById('rProduk').value = '';
+          bSearch.value = '';
+          document.getElementById('rQty').value = '';
+          selectedBahanSku = '';
+          await loadResep();
+        } else {
+          msgEl.textContent = result.message;
+          msgEl.className = 'err';
+        }
+      } catch (err) {
+        msgEl.textContent = 'Gagal terhubung ke server';
+        msgEl.className = 'err';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Produksi
+    document.getElementById('batchMinus').addEventListener('click', () => {
+      const el = document.getElementById('prodBatch');
+      el.value = Math.max(1, parseInt(el.value || '1') - 1);
+      updatePreview();
+    });
+    document.getElementById('batchPlus').addEventListener('click', () => {
+      const el = document.getElementById('prodBatch');
+      el.value = parseInt(el.value || '0') + 1;
+      updatePreview();
+    });
+    document.getElementById('prodBatch').addEventListener('input', updatePreview);
+    document.getElementById('prodProduk').addEventListener('change', updatePreview);
+
+    function updatePreview() {
+      const produk = document.getElementById('prodProduk').value;
+      const batch = parseFloat(document.getElementById('prodBatch').value) || 0;
+      const previewEl = document.getElementById('resepPreview');
+      const resep = resepData.find(r => r.produk === produk);
+
+      if (!resep) { previewEl.innerHTML = ''; return; }
+
+      previewEl.innerHTML = resep.bahan.map(b => {
+        const butuh = b.qtyPerBatch * batch;
+        const cukup = b.stokTersedia >= butuh;
+        return `<div class="item" style="${cukup ? '' : 'color:#c62828;font-weight:700;'}">
+          <span>${b.nama}</span><span>${butuh} / ${b.stokTersedia} ${b.satuan} ${cukup ? '' : '☠️'}</span>
+        </div>`;
+      }).join('');
+    }
+
+    document.getElementById('btnProduksi').addEventListener('click', async () => {
+      const msgEl = document.getElementById('prodMsg');
+      const btn = document.getElementById('btnProduksi');
+      const petugas = document.getElementById('prodPetugas').value;
+      const produk = document.getElementById('prodProduk').value;
+      const jumlahBatch = document.getElementById('prodBatch').value;
+
+      if (!petugas) { msgEl.textContent = 'Pilih petugas dulu'; msgEl.className = 'err'; return; }
+      if (!produk) { msgEl.textContent = 'Pilih produk dulu'; msgEl.className = 'err'; return; }
+
+      if (!confirm(`Produksi "${produk}" x${jumlahBatch} batch? Ini bakal motong stok semua bahan sekaligus.`)) return;
+
+      btn.disabled = true;
+      msgEl.textContent = 'Memproses...';
+      msgEl.className = '';
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'produksi', data: { produk, jumlahBatch, petugas } })
+        });
+        const result = await res.json();
+
+        msgEl.textContent = result.message;
+        msgEl.className = result.success ? 'ok' : 'err';
+
+        if (result.success) {
+          document.getElementById('prodBatch').value = '1';
+          await loadBahan();
+          await loadResep();
+          updatePreview();
+        }
+      } catch (err) {
+        msgEl.textContent = 'Gagal terhubung ke server';
+        msgEl.className = 'err';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    async function init() {
+      await loadUsers();
+      await loadBahan();
+      await loadResep();
+    }
+    init();
+  </script>
+</Layout>
