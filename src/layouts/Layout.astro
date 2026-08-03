@@ -1,8 +1,9 @@
 ---
 interface Props {
   active: string;
+  skipAuth?: boolean;
 }
-const { active } = Astro.props;
+const { active, skipAuth = false } = Astro.props;
 ---
 <!doctype html>
 <html lang="id">
@@ -16,6 +17,8 @@ const { active } = Astro.props;
     header { background: #5c3d2e; color: #fff; text-align: center; padding: 18px 16px; }
     header h1 { font-size: 1.2rem; }
     header p { opacity: 0.85; font-size: 0.76rem; margin-top: 4px; }
+    .sessionBar { margin-top: 8px; font-size: 0.75rem; opacity: 0.9; display: flex; justify-content: center; gap: 10px; align-items: center; }
+    .sessionBar a { color: #f2ece4; text-decoration: underline; }
     nav { display: flex; background: #4a2f22; position: sticky; top: 0; z-index: 10; overflow-x: auto; }
     nav a { flex: 0 0 auto; min-width: 64px; text-align: center; padding: 10px 8px; color: #d9c7ba; text-decoration: none; font-size: 0.66rem; font-weight: 600; white-space: nowrap; }
     nav a.active { background: #f2ece4; color: #4a2f22; }
@@ -24,23 +27,56 @@ const { active } = Astro.props;
     button { font: inherit; cursor: pointer; }
     input, select { font: inherit; }
   </style>
+  {!skipAuth && (
+    <script is:inline>
+      (function() {
+        const session = localStorage.getItem('gudangPetugas');
+        if (!session) {
+          window.location.href = '/login';
+        }
+      })();
+    </script>
+  )}
 </head>
 <body>
   <header>
     <h1>🍞 Gudang Bahan Baku Roti</h1>
     <p>Inventory Paperless - Scan & Klik</p>
+    {!skipAuth && <div class="sessionBar" id="sessionBar"></div>}
   </header>
-  <nav>
-    <a href="/" class={active === "dashboard" ? "active" : ""}>📊 Dashboard</a>
-    <a href="/input" class={active === "input" ? "active" : ""}>➕ Input</a>
-    <a href="/bahan" class={active === "bahan" ? "active" : ""}>📦 Bahan</a>
-    <a href="/opname" class={active === "opname" ? "active" : ""}>📋 Opname</a>
-    <a href="/resep" class={active === "resep" ? "active" : ""}>🧾 BOM</a>
-    <a href="/riwayat" class={active === "riwayat" ? "active" : ""}>📝 Riwayat</a>
-    <a href="/laporan" class={active === "laporan" ? "active" : ""}>📈 Laporan</a>
-  </nav>
+  {!skipAuth && (
+    <nav>
+      <a href="/" class={active === "dashboard" ? "active" : ""}>📊 Dashboard</a>
+      <a href="/input" class={active === "input" ? "active" : ""}>➕ Input</a>
+      <a href="/bahan" class={active === "bahan" ? "active" : ""}>📦 Bahan</a>
+      <a href="/opname" class={active === "opname" ? "active" : ""}>📋 Opname</a>
+      <a href="/resep" class={active === "resep" ? "active" : ""}>🧾 BOM</a>
+      <a href="/riwayat" class={active === "riwayat" ? "active" : ""}>📝 Riwayat</a>
+      <a href="/laporan" class={active === "laporan" ? "active" : ""}>📈 Laporan</a>
+    </nav>
+  )}
   <main>
     <slot />
   </main>
+  {!skipAuth && (
+    <script is:inline>
+      (function() {
+        try {
+          const session = JSON.parse(localStorage.getItem('gudangPetugas') || 'null');
+          if (session) {
+            const bar = document.getElementById('sessionBar');
+            if (bar) {
+              bar.innerHTML = '👤 ' + session.nama + ' &nbsp;·&nbsp; <a href="#" id="logoutLink">Keluar</a>';
+              document.getElementById('logoutLink').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('gudangPetugas');
+                window.location.href = '/login';
+              });
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
+  )}
 </body>
 </html>
