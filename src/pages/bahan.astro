@@ -67,14 +67,17 @@ import Layout from "../layouts/Layout.astro";
     #reader video { border-radius: 16px; }
     .hidden { display: none; }
     .scanMsg { font-size: 0.8rem; color: #2e7d32; margin-top: 6px; }
-    .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; gap: 8px; }
     .item:last-child { border-bottom: none; }
+    .itemInfo { flex: 1; min-width: 0; }
     .item .nama { font-weight: 600; font-size: 0.9rem; }
     .item .sub { font-size: 0.78rem; color: #8a7566; }
+    .itemRight { display: flex; align-items: center; gap: 8px; }
     .tag { font-size: 0.72rem; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
     .tag.aman { background: #e3f2e3; color: #2e7d32; }
     .tag.menipis { background: #fdecd2; color: #b5651d; }
     .tag.expired { background: #fbdcdc; color: #b52a2a; }
+    .btnDelBahan { background: none; border: none; font-size: 1.1rem; padding: 4px 6px; color: #c62828; }
     #formMsg { font-size: 0.82rem; margin-top: 8px; }
     #formMsg.ok { color: #2e7d32; }
     #formMsg.err { color: #c62828; }
@@ -156,13 +159,41 @@ import Layout from "../layouts/Layout.astro";
       }
       el.innerHTML = list.map(p => `
         <div class="item">
-          <div>
+          <div class="itemInfo">
             <div class="nama">${p.nama}</div>
             <div class="sub">${p.sku} | Stok: ${p.stok} ${p.satuan} | Min: ${p.minStok}</div>
           </div>
-          <span class="tag ${tagClass(p.status)}">${tagText(p)}</span>
+          <div class="itemRight">
+            <span class="tag ${tagClass(p.status)}">${tagText(p)}</span>
+            <button class="btnDelBahan" data-sku="${p.sku}" data-nama="${p.nama}" title="Hapus">🗑️</button>
+          </div>
         </div>
       `).join('');
+
+      el.querySelectorAll('.btnDelBahan').forEach(btn => {
+        btn.addEventListener('click', () => deleteBahan(btn.dataset.sku, btn.dataset.nama));
+      });
+    }
+
+    async function deleteBahan(sku, nama) {
+      if (!confirm(`Hapus "${nama}" dari daftar bahan?\n\nRiwayat transaksi lama tetap aman, tapi bahan ini gak akan muncul lagi di Input/Opname/Resep.`)) return;
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'deleteBahan', data: { sku } })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          await loadBahan();
+        } else {
+          alert('Gagal: ' + result.message);
+        }
+      } catch (err) {
+        alert('Gagal terhubung ke server');
+      }
     }
 
     async function loadBahan() {
