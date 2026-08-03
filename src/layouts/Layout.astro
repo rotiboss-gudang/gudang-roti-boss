@@ -13,11 +13,11 @@ const { active } = Astro.props;
   <style is:global>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: #f2ece4; color: #4a2f22; }
-    header { background: #5c3d2e; color: #fff; text-align: center; padding: 20px 16px; }
-    header h1 { font-size: 1.3rem; }
-    header p { opacity: 0.85; font-size: 0.8rem; margin-top: 4px; }
+    header { background: #5c3d2e; color: #fff; text-align: center; padding: 18px 16px; }
+    header h1 { font-size: 1.2rem; }
+    header p { opacity: 0.85; font-size: 0.76rem; margin-top: 4px; }
     nav { display: flex; background: #4a2f22; position: sticky; top: 0; z-index: 10; }
-    nav a { flex: 1; text-align: center; padding: 10px 2px; color: #d9c7ba; text-decoration: none; font-size: 0.66rem; font-weight: 600; line-height: 1.25; }
+    nav a { flex: 1; text-align: center; padding: 9px 1px; color: #d9c7ba; text-decoration: none; font-size: 0.6rem; font-weight: 600; line-height: 1.25; }
     nav a.active { background: #f2ece4; color: #4a2f22; }
     main { padding: 16px; padding-bottom: 60px; }
     .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px; }
@@ -35,6 +35,7 @@ const { active } = Astro.props;
     <a href="/input" class={active === "input" ? "active" : ""}>➕ Input</a>
     <a href="/bahan" class={active === "bahan" ? "active" : ""}>📦 Bahan</a>
     <a href="/opname" class={active === "opname" ? "active" : ""}>📋 Opname</a>
+    <a href="/resep" class={active === "resep" ? "active" : ""}>🧾 BOM</a>
     <a href="/riwayat" class={active === "riwayat" ? "active" : ""}>📝 Riwayat</a>
   </nav>
   <main>
