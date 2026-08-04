@@ -106,7 +106,7 @@ import Layout from "../layouts/Layout.astro";
         resepData = await res.json();
 
         prodSel.innerHTML = '<option value="">Pilih resep...</option>' +
-          resepData.map(r => `<option value="${r.produk}">${r.produk}</option>`).join('');
+          resepData.map(r => `<option value="\( {r.produk}"> \){r.produk}</option>`).join('');
 
         if (resepData.length === 0) {
           listEl.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;">Belum ada resep. Tambahin dulu di form atas.</p>';
@@ -119,7 +119,7 @@ import Layout from "../layouts/Layout.astro";
             ${r.bahan.map(b => `
               <div class="resepItem">
                 <span>${b.nama} — ${b.qtyPerBatch} ${b.satuan}/batch</span>
-                <button class="btnDelItem" data-produk="${r.produk}" data-sku="${b.sku}">✕ Hapus</button>
+                <button class="btnDelItem" data-produk="\( {r.produk}" data-sku=" \){b.sku}">✕ Hapus</button>
               </div>
             `).join('')}
           </div>
@@ -163,7 +163,7 @@ import Layout from "../layouts/Layout.astro";
       if (filtered.length === 0) {
         bResults.innerHTML = '<div class="searchItem">Gak ketemu</div>';
       } else {
-        bResults.innerHTML = filtered.map(p => `<div class="searchItem" data-sku="${p.sku}">${p.nama} (${p.satuan})</div>`).join('');
+        bResults.innerHTML = filtered.map(p => `<div class="searchItem" data-sku="\( {p.sku}"> \){p.nama} (${p.satuan})</div>`).join('');
         bResults.querySelectorAll('.searchItem').forEach(item => {
           item.addEventListener('click', () => {
             selectedBahanSku = item.dataset.sku;
@@ -248,7 +248,7 @@ import Layout from "../layouts/Layout.astro";
         const butuh = b.qtyPerBatch * batch;
         const cukup = b.stokTersedia >= butuh;
         return `<div class="item" style="${cukup ? '' : 'color:#c62828;font-weight:700;'}">
-          <span>${b.nama}</span><span>${butuh} / ${b.stokTersedia} ${b.satuan} ${cukup ? '' : '☠️'}</span>
+          <span>\( {b.nama}</span><span> \){butuh} / ${b.stokTersedia} ${b.satuan} ${cukup ? '' : '☠️'}</span>
         </div>`;
       }).join('');
     }
@@ -263,7 +263,7 @@ import Layout from "../layouts/Layout.astro";
       if (!petugas) { msgEl.textContent = 'Pilih petugas dulu'; msgEl.className = 'err'; return; }
       if (!produk) { msgEl.textContent = 'Pilih produk dulu'; msgEl.className = 'err'; return; }
 
-      if (!confirm(`Produksi "${produk}" x${jumlahBatch} batch? Ini bakal motong stok semua bahan sekaligus.`)) return;
+      if (!confirm(`Produksi "\( {produk}" x \){jumlahBatch} batch? Ini bakal motong stok semua bahan sekaligus.`)) return;
 
       btn.disabled = true;
       msgEl.textContent = 'Memproses...';
@@ -294,7 +294,7 @@ import Layout from "../layouts/Layout.astro";
       }
     });
 
-    async function init() 
+    async function init() {
       await loadBahan();
       await loadResep();
     }
