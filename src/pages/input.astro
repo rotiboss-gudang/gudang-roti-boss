@@ -11,8 +11,7 @@ import Layout from "../layouts/Layout.astro";
   </div>
 
   <div class="card">
-    <label>Petugas</label>
-    <select id="fPetugas"><option value="">Memuat...</option></select>
+    <div class="petugasBox">👤 Petugas: <strong id="petugasName">-</strong></div>
 
     <label>Bahan Baku</label>
     <div class="searchWrap">
@@ -47,6 +46,7 @@ import Layout from "../layouts/Layout.astro";
     .tipeRow { display: flex; gap: 8px; }
     .tipeBtn { flex: 1; padding: 12px 4px; border: 2px solid #eee; background: #fff; border-radius: 12px; font-size: 0.85rem; font-weight: 600; color: #8a7566; }
     .tipeBtn.active { border-color: #5c3d2e; color: #5c3d2e; background: #f2ece4; }
+    .petugasBox { background: #f9f5f0; border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; margin-bottom: 4px; }
     label { display: block; font-size: 0.8rem; color: #8a7566; margin: 12px 0 4px; }
     select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; }
     input[type="text"], input[type="number"], input[type="date"] {
@@ -91,6 +91,14 @@ import Layout from "../layouts/Layout.astro";
     let html5QrCode = null;
     let scanning = false;
 
+    function getPetugas() {
+      try {
+        const s = JSON.parse(localStorage.getItem('gudangPetugas') || 'null');
+        return s ? s.nama : '';
+      } catch (e) { return ''; }
+    }
+    document.getElementById('petugasName').textContent = getPetugas() || '-';
+
     document.querySelectorAll('.tipeBtn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tipeBtn').forEach(b => b.classList.remove('active'));
@@ -104,25 +112,11 @@ import Layout from "../layouts/Layout.astro";
       });
     });
 
-    async function loadUsers() {
-      try {
-        const res = await fetch(`${API_URL}?action=getUsers`);
-        const users = await res.json();
-        const sel = document.getElementById('fPetugas');
-        sel.innerHTML = '<option value="">Pilih petugas...</option>' +
-          users.map(u => `<option value="${u.nama}">${u.nama}</option>`).join('');
-      } catch (err) {
-        document.getElementById('fPetugas').innerHTML = '<option value="">Gagal memuat</option>';
-      }
-    }
-
     async function loadBahan() {
       try {
         const res = await fetch(`${API_URL}?action=getMasterData`);
         allBahan = await res.json();
-      } catch (err) {
-        allBahan = [];
-      }
+      } catch (err) { allBahan = []; }
     }
 
     function renderResults(list) {
@@ -253,12 +247,12 @@ import Layout from "../layouts/Layout.astro";
     document.getElementById('btnSubmit').addEventListener('click', async () => {
       const msgEl = document.getElementById('formMsg');
       const btn = document.getElementById('btnSubmit');
-      const petugas = document.getElementById('fPetugas').value;
+      const petugas = getPetugas();
       const sku = selectedSku;
       const qty = document.getElementById('fQty').value;
       const p = allBahan.find(x => x.sku === sku);
 
-      if (!petugas) { msgEl.textContent = 'Pilih petugas dulu'; msgEl.className = 'err'; return; }
+      if (!petugas) { msgEl.textContent = 'Sesi login gak valid, coba login ulang'; msgEl.className = 'err'; return; }
       if (!sku) { msgEl.textContent = 'Pilih bahan dulu'; msgEl.className = 'err'; return; }
       if (!qty || parseFloat(qty) <= 0) { msgEl.textContent = 'Jumlah harus lebih dari 0'; msgEl.className = 'err'; return; }
 
@@ -323,7 +317,6 @@ import Layout from "../layouts/Layout.astro";
       }
     });
 
-    loadUsers();
     loadBahan();
   </script>
 </Layout>
