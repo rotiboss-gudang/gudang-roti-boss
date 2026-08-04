@@ -4,8 +4,7 @@ import Layout from "../layouts/Layout.astro";
 <Layout active="resep">
   <div class="card">
     <h2 class="sectionTitle">🏭 Produksi</h2>
-    <label>Petugas</label>
-    <select id="prodPetugas"><option value="">Pilih petugas...</option></select>
+    <div class="petugasBox">👤 Petugas: <strong id="petugasName">-</strong></div>
 
     <label>Produk</label>
     <select id="prodProduk"><option value="">Pilih resep...</option></select>
@@ -83,15 +82,13 @@ import Layout from "../layouts/Layout.astro";
     let resepData = [];
     let selectedBahanSku = "";
 
-    async function loadUsers() {
+    function getPetugas() {
       try {
-        const res = await fetch(`${API_URL}?action=getUsers`);
-        const users = await res.json();
-        const sel = document.getElementById('prodPetugas');
-        sel.innerHTML = '<option value="">Pilih petugas...</option>' +
-          users.map(u => `<option value="${u.nama}">${u.nama}</option>`).join('');
-      } catch (err) {}
+        const s = JSON.parse(localStorage.getItem('gudangPetugas') || 'null');
+        return s ? s.nama : '';
+      } catch (e) { return ''; }
     }
+    document.getElementById('petugasName').textContent = getPetugas() || '-';
 
     async function loadBahan() {
       try {
@@ -258,7 +255,7 @@ import Layout from "../layouts/Layout.astro";
     document.getElementById('btnProduksi').addEventListener('click', async () => {
       const msgEl = document.getElementById('prodMsg');
       const btn = document.getElementById('btnProduksi');
-      const petugas = document.getElementById('prodPetugas').value;
+      const petugas = getPetugas();
       const produk = document.getElementById('prodProduk').value;
       const jumlahBatch = document.getElementById('prodBatch').value;
 
@@ -296,8 +293,7 @@ import Layout from "../layouts/Layout.astro";
       }
     });
 
-    async function init() {
-      await loadUsers();
+    async function init() 
       await loadBahan();
       await loadResep();
     }
