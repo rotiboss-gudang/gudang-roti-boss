@@ -106,7 +106,7 @@ import Layout from "../layouts/Layout.astro";
         resepData = await res.json();
 
         prodSel.innerHTML = '<option value="">Pilih resep...</option>' +
-  resepData.map(r => `<option value="\( {r.produk}"> \){r.produk}</option>`).join('');
+          resepData.map(r => `<option value="\( {r.produk}"> \){r.produk}</option>`).join('');
 
         if (resepData.length === 0) {
           listEl.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;">Belum ada resep. Tambahin dulu di form atas.</p>';
