@@ -15,13 +15,13 @@ const { active, skipAuth = false } = Astro.props;
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#bbc4bd" />
+  <meta name="theme-color" content="#f2ece4" />
   <style is:global>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
     body { 
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; 
-      background: #bbc4bd; 
+      background: #f2ece4; 
       color: #333; 
       min-height: 100vh;
     }
@@ -83,22 +83,22 @@ const { active, skipAuth = false } = Astro.props;
     }
     
     nav a.active { 
-      background: #ffffff; 
+      background: #f2ece4; 
       color: #4a2f22; 
     }
     
     main { 
       padding: 16px; 
       padding-bottom: 60px; 
-      background: #ffffff;
     }
     
     .card { 
-      background: #fff; 
+      background: #ffffff; 
       border-radius: 14px; 
       padding: 16px; 
       margin-bottom: 12px; 
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.04);
     }
     
     button { font: inherit; cursor: pointer; }
