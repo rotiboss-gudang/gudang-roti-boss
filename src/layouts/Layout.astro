@@ -15,24 +15,96 @@ const { active, skipAuth = false } = Astro.props;
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#faf8f7" />
+  <meta name="theme-color" content="#ffffff" />
   <style is:global>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f2ece4; color: #f2ece4; }
-    header { background: #5c3d2e; color: #fff; text-align: center; padding: 18px 16px; }
-    header h1 { font-size: 1.2rem; }
-    header p { opacity: 0.85; font-size: 0.76rem; margin-top: 4px; }
-    .logoHeader { max-width: 100%; height: auto; max-height: 100px; display: block; margin: 0 auto; }
-    .sessionBar { margin-top: 8px; font-size: 0.75rem; opacity: 0.9; display: flex; justify-content: center; gap: 10px; align-items: center; }
-    .sessionBar a { color: #f2ece4; text-decoration: underline; }
-    nav { display: flex; background: #4a2f22; position: sticky; top: 0; z-index: 10; overflow-x: auto; }
-    nav a { flex: 0 0 auto; min-width: 64px; text-align: center; padding: 10px 8px; color: #d9c7ba; text-decoration: none; font-size: 0.66rem; font-weight: 600; white-space: nowrap; }
-    nav a.active { background: #f2ece4; color: #4a2f22; }
-    main { padding: 16px; padding-bottom: 60px; }
-    .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+    
+    body { 
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; 
+      background: #ffffff; 
+      color: #333; 
+      min-height: 100vh;
+    }
+    
+    header { 
+      background: #5c3d2e; 
+      color: #fff; 
+      text-align: center; 
+      padding: 0;
+      overflow: hidden;
+    }
+    
+    .logoHeader { 
+      width: 100%;
+      max-width: 100%; 
+      height: auto; 
+      display: block; 
+      margin: 0 auto; 
+      object-fit: cover;
+    }
+    
+    .sessionBar { 
+      margin: 0;
+      padding: 8px 12px 10px;
+      font-size: 0.75rem; 
+      opacity: 0.95; 
+      display: flex; 
+      justify-content: center; 
+      gap: 10px; 
+      align-items: center; 
+      background: #5c3d2e;
+    }
+    
+    .sessionBar a { 
+      color: #f2ece4; 
+      text-decoration: underline; 
+    }
+    
+    nav { 
+      display: flex; 
+      background: #4a2f22; 
+      position: sticky; 
+      top: 0; 
+      z-index: 10; 
+      overflow-x: auto; 
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    nav a { 
+      flex: 0 0 auto; 
+      min-width: 64px; 
+      text-align: center; 
+      padding: 10px 8px; 
+      color: #d9c7ba; 
+      text-decoration: none; 
+      font-size: 0.66rem; 
+      font-weight: 600; 
+      white-space: nowrap; 
+    }
+    
+    nav a.active { 
+      background: #ffffff; 
+      color: #4a2f22; 
+    }
+    
+    main { 
+      padding: 16px; 
+      padding-bottom: 60px; 
+      background: #ffffff;
+    }
+    
+    .card { 
+      background: #fff; 
+      border-radius: 14px; 
+      padding: 16px; 
+      margin-bottom: 12px; 
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    
     button { font: inherit; cursor: pointer; }
     input, select { font: inherit; }
   </style>
+
   {!skipAuth && (
     <script is:inline>
       (function() {
@@ -46,10 +118,10 @@ const { active, skipAuth = false } = Astro.props;
 </head>
 <body>
   <header>
-    <header>
     <img src="/header.webp" alt="Gudang Bahan Baku Roti" class="logoHeader" />
     {!skipAuth && <div class="sessionBar" id="sessionBar"></div>}
   </header>
+
   {!skipAuth && (
     <nav>
       <a href="/" class={active === "dashboard" ? "active" : ""}>📊 Dashboard</a>
@@ -61,9 +133,11 @@ const { active, skipAuth = false } = Astro.props;
       <a href="/laporan" class={active === "laporan" ? "active" : ""}>📈 Laporan</a>
     </nav>
   )}
+
   <main>
     <slot />
   </main>
+
   {!skipAuth && (
     <script is:inline>
       (function() {
