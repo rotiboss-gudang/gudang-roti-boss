@@ -66,6 +66,22 @@ import Layout from "../layouts/Layout.astro";
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL;
 
+function getPetugas() {
+  try {
+    const data = localStorage.getItem('gudangPetugas');
+
+    if (!data) return '';
+
+    const petugas = JSON.parse(data);
+
+    return petugas.nama || '';
+
+  } catch (err) {
+    console.error('Error getPetugas:', err);
+    return '';
+  }
+}
+
     function fmtDate(d) {
       return d.toISOString().slice(0, 10);
     }
