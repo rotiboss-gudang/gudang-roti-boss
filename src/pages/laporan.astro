@@ -179,7 +179,7 @@ import Layout from "../layouts/Layout.astro";
   action: 'generateLaporan',
   data: {
     tanggal: tanggal,
-    petugas: getPetugas()
+    petugas: "Bambang"
   }
 })
         });
@@ -193,9 +193,10 @@ import Layout from "../layouts/Layout.astro";
           msgEl.className = 'err';
         }
       } catch (err) {
-        msgEl.textContent = 'Gagal terhubung ke server';
-        msgEl.className = 'err';
-      } finally {
+  console.error("ERROR generateLaporan:", err);
+  msgEl.textContent = 'Error: ' + err.message;
+  msgEl.className = 'err';
+}finally {
         btn.disabled = false;
       }
     });
