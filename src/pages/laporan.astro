@@ -20,7 +20,6 @@ import Layout from "../layouts/Layout.astro";
         <input type="date" id="endDate" />
       </div>
     </div>
-    <button id="btnQuick7" class="btn-secondary">7 Hari Terakhir</button>
     <button id="btnLoad" class="btn-primary">Tampilkan Ringkasan</button>
 
     <div id="ringkasanBox"></div>
@@ -48,7 +47,6 @@ import Layout from "../layouts/Layout.astro";
     label { display: block; font-size: 0.75rem; color: #8a7566; margin-bottom: 4px; }
     .dateRow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
     input[type="date"] { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.85rem; }
-    .btn-secondary { width: 100%; padding: 10px; border: 1px solid #5c3d2e; color: #5c3d2e; background: #fff; border-radius: 10px; font-size: 0.82rem; font-weight: 600; margin-bottom: 8px; }
     .btn-primary { width: 100%; padding: 14px; background: #5c3d2e; color: #fff; border: none; border-radius: 12px; font-weight: 600; }
     .btn-primary:disabled { opacity: 0.6; }
     .hint { font-size: 0.78rem; color: #8a7566; margin-bottom: 12px; }
@@ -112,15 +110,8 @@ function getPetugas() {
       }
     }
 
-    document.getElementById('btnQuick7').addEventListener('click', () => {
-      const end = new Date();
-      const start = new Date(end.getTime() - 6 * 24 * 60 * 60 * 1000);
-      document.getElementById('startDate').value = fmtDate(start);
-      document.getElementById('endDate').value = fmtDate(end);
-      loadRingkasan();
-    });
-
-    document.getElementById('btnLoad').addEventListener('click', loadRingkasan);
+    
+ document.getElementById('btnLoad').addEventListener('click', loadRingkasan);
 
     async function loadRingkasan() {
       const box = document.getElementById('ringkasanBox');
