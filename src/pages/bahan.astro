@@ -91,6 +91,19 @@ import Layout from "../layouts/Layout.astro";
     let html5QrCode = null;
     let scanning = false;
 
+function getPetugas() {
+  try {
+    const s = JSON.parse(
+      localStorage.getItem('gudangPetugas') || 'null'
+    );
+
+    return s ? s.nama : '';
+
+  } catch (e) {
+    return '';
+  }
+}
+
     document.getElementById('btnToggleForm').addEventListener('click', () => {
       const formCard = document.getElementById('formCard');
       formCard.style.display = formCard.style.display === 'none' ? 'block' : 'none';
@@ -223,17 +236,20 @@ import Layout from "../layouts/Layout.astro";
       }
 
       const payload = {
-        action: 'addBahanBaru',
-        data: {
-          nama,
-          kategori: document.getElementById('fKategori').value.trim(),
-          satuan: document.getElementById('fSatuan').value.trim(),
-          stokAwal: document.getElementById('fStokAwal').value,
-          minStok: document.getElementById('fMinStok').value,
-          exp: document.getElementById('fExp').value,
-          sku: document.getElementById('fSku').value.trim()
-        }
-      };
+  action: 'addBahanBaru',
+  data: {
+    nama,
+    kategori: document.getElementById('fKategori').value.trim(),
+    satuan: document.getElementById('fSatuan').value.trim(),
+    stokAwal: document.getElementById('fStokAwal').value,
+    minStok: document.getElementById('fMinStok').value,
+    exp: document.getElementById('fExp').value,
+    sku: document.getElementById('fSku').value.trim(),
+
+    // Petugas login
+    petugas: getPetugas()
+  }
+};
 
       btn.disabled = true;
       msgEl.textContent = 'Menyimpan...';
