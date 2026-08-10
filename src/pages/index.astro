@@ -103,25 +103,21 @@ function formatBySatuan(detail) {
   if (!Array.isArray(detail) || detail.length === 0) return "0";
 
   return detail
-    .map((item) => {
+    .map(function (item) {
       const qty = Number(item.qty) || 0;
       const satuan = String(item.satuan || "").trim() || "pcs";
       const angka = Number.isInteger(qty) ? qty : Number(qty.toFixed(3));
-      return `${angka} ${satuan}`;
+      return angka + " " + satuan;
     })
     .join(" + ");
 }
 
 async function loadDashboard() {
   try {
-    const res = await fetch(`${API_URL}?action=getDashboardData`);
+    const res = await fetch(API_URL + "?action=getDashboardData");
     if (!res.ok) throw new Error("Gagal mengambil data API");
 
     const data = await res.json();
-
-    // Debug (bisa dihapus nanti)
-    console.log("masukHariIni:", data.masukHariIni);
-    console.log("keluarHariIni:", data.keluarHariIni);
 
     const masukFormatted = formatBySatuan(data.masukHariIni || data.masukHariIniDetail);
     const keluarFormatted = formatBySatuan(data.keluarHariIni || data.keluarHariIniDetail);
@@ -132,50 +128,47 @@ async function loadDashboard() {
       { num: data.menipis ?? 0, label: "Menipis", cls: "menipis" },
       { num: data.expired ?? 0, label: "Expired", cls: "expired" },
       { num: masukFormatted, label: "Masuk Hari Ini", cls: "default" },
-      { num: keluarFormatted, label: "Keluar Hari Ini", cls: "default" },
+      { num: keluarFormatted, label: "Keluar Hari Ini", cls: "default" }
     ];
 
+    // Render pakai concatenation biar aman
     document.getElementById("statGrid").innerHTML = stats
-      .map(
-        (s) => `
-        <div class="card">
-          <div class="num \( {s.cls}"> \){s.num}</div>
-          <div class="label">${s.label}</div>
-        </div>
-      `
-      )
+      .map(function (s) {
+        return (
+          '<div class="card">' +
+            '<div class="num ' + s.cls + '">' + s.num + '</div>' +
+            '<div class="label">' + s.label + '</div>' +
+          '</div>'
+        );
+      })
       .join("");
 
     // Perlu Perhatian
     const perhatianEl = document.getElementById("perhatianList");
 
     if (!data.perhatian || data.perhatian.length === 0) {
-      perhatianEl.innerHTML = `
-        <p style="color:#8a7566;font-size:0.85rem;">
-          Semua bahan aman ✅
-        </p>`;
+      perhatianEl.innerHTML =
+        '<p style="color:#8a7566;font-size:0.85rem;">Semua bahan aman ✅</p>';
     } else {
       perhatianEl.innerHTML = data.perhatian
-        .map((p) => {
+        .map(function (p) {
           const tagCls = p.status === "MENIPIS" ? "menipis" : "expired";
           const tagText =
             p.status === "MENIPIS"
               ? "Menipis"
               : p.expired
-                ? `Exp ${p.expired}`
+                ? "Exp " + p.expired
                 : "Expired";
 
-          return `
-            <div class="item">
-              <div>
-                <div class="nama">${p.nama}</div>
-                <div class="sub">
-                  Stok: ${p.stok} ${p.satuan} | Min: ${p.minStok}
-                </div>
-              </div>
-              <span class="tag \( {tagCls}"> \){tagText}</span>
-            </div>
-          `;
+          return (
+            '<div class="item">' +
+              "<div>" +
+                '<div class="nama">' + p.nama + "</div>" +
+                '<div class="sub">Stok: ' + p.stok + " " + p.satuan + " | Min: " + p.minStok + "</div>" +
+              "</div>" +
+              '<span class="tag ' + tagCls + '">' + tagText + "</span>" +
+            "</div>"
+          );
         })
         .join("");
     }
