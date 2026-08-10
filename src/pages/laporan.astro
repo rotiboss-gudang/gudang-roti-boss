@@ -1,6 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 ---
+
 <Layout active="laporan">
   <div class="card">
     <h2 class="sectionTitle">⚠️ Kondisi Gudang Saat Ini</h2>
@@ -10,208 +11,876 @@ import Layout from "../layouts/Layout.astro";
 
   <div class="card">
     <h2 class="sectionTitle">📊 Ringkasan Transaksi</h2>
+
     <div class="dateRow">
       <div>
         <label>Dari tanggal</label>
         <input type="date" id="startDate" />
       </div>
+
       <div>
         <label>Sampai tanggal</label>
         <input type="date" id="endDate" />
       </div>
     </div>
-    <button id="btnLoad" class="btn-primary">Tampilkan Ringkasan</button>
+
+    <button id="btnLoad" class="btn-primary">
+      Tampilkan Ringkasan
+    </button>
 
     <div id="ringkasanBox"></div>
   </div>
 
   <div class="card">
     <h2 class="sectionTitle">📄 Laporan PDF</h2>
-    <p class="hint">CETAK laporan HARIAN atau TANGGAL YANG DIPILIH format PDF </p>
-    <button id="btnPdf" class="btn-primary">📄 CETAK Laporan Sekarang</button>
+
+    <p class="hint">
+      CETAK laporan HARIAN atau TANGGAL YANG DIPILIH format PDF
+    </p>
+
+    <button id="btnPdf" class="btn-primary">
+      📄 CETAK Laporan Sekarang
+    </button>
+
     <div id="pdfMsg"></div>
   </div>
 
+
   <style is:global>
-    .sectionTitle { margin-bottom: 12px; font-size: 1rem; }
-    .statGrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-    .statBox { background: #f9f5f0; border-radius: 10px; padding: 10px 6px; text-align: center; }
-    .statBox .num { font-size: 1.4rem; font-weight: 700; }
-    .statBox .label { font-size: 0.68rem; color: #8a7566; margin-top: 2px; }
-    .aman { color: #2e7d32; } .menipis { color: #b5651d; } .expired { color: #c62828; }
-    .attItem { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.82rem; }
-    .attItem:last-child { border-bottom: none; }
-    .attTag { font-size: 0.68rem; padding: 2px 8px; border-radius: 20px; }
-    .attTag.menipis { background: #fdecd2; color: #b5651d; }
-    .attTag.expired { background: #fbdcdc; color: #b52a2a; }
-    label { display: block; font-size: 0.75rem; color: #8a7566; margin-bottom: 4px; }
-    .dateRow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-    input[type="date"] { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.85rem; }
-    .btn-primary { width: 100%; padding: 14px; background: #5c3d2e; color: #fff; border: none; border-radius: 12px; font-weight: 600; }
-    .btn-primary:disabled { opacity: 0.6; }
-    .hint { font-size: 0.78rem; color: #8a7566; margin-bottom: 12px; }
-    #ringkasanBox { margin-top: 14px; }
-    .ringkasanGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .ringkasanCard { background: #f9f5f0; border-radius: 10px; padding: 12px; }
-    .ringkasanCard .num { font-size: 1.3rem; font-weight: 700; }
-    .ringkasanCard .label { font-size: 0.72rem; color: #8a7566; }
-    #pdfMsg { font-size: 0.85rem; margin-top: 10px; }
-    #pdfMsg.ok { color: #2e7d32; }
-    #pdfMsg.err { color: #c62828; }
-    #pdfMsg a { color: #2e7d32; font-weight: 700; }
+    .sectionTitle {
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+
+    .statGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .statBox {
+      background: #f9f5f0;
+      border-radius: 10px;
+      padding: 10px 6px;
+      text-align: center;
+    }
+
+    .statBox .num {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .statBox .label {
+      font-size: 0.68rem;
+      color: #8a7566;
+      margin-top: 2px;
+    }
+
+    .aman {
+      color: #2e7d32;
+    }
+
+    .menipis {
+      color: #b5651d;
+    }
+
+    .expired {
+      color: #c62828;
+    }
+
+    .attItem {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.82rem;
+    }
+
+    .attItem:last-child {
+      border-bottom: none;
+    }
+
+    .attTag {
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .attTag.menipis {
+      background: #fdecd2;
+      color: #b5651d;
+    }
+
+    .attTag.expired {
+      background: #fbdcdc;
+      color: #b52a2a;
+    }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      color: #8a7566;
+      margin-bottom: 4px;
+    }
+
+    .dateRow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    input[type="date"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+      font-size: 0.85rem;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: #5c3d2e;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #8a7566;
+      margin-bottom: 12px;
+    }
+
+    #ringkasanBox {
+      margin-top: 14px;
+    }
+
+    .ringkasanGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .ringkasanCard {
+      background: #f9f5f0;
+      border-radius: 10px;
+      padding: 12px;
+      min-width: 0;
+    }
+
+    .ringkasanCard .num {
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    .ringkasanCard .label {
+      font-size: 0.72rem;
+      color: #8a7566;
+      margin-top: 3px;
+    }
+
+    #pdfMsg {
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+
+    #pdfMsg.ok {
+      color: #2e7d32;
+    }
+
+    #pdfMsg.err {
+      color: #c62828;
+    }
+
+    #pdfMsg a {
+      color: #2e7d32;
+      font-weight: 700;
+    }
   </style>
+
 
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL;
 
-function getPetugas() {
-  try {
-    const data = localStorage.getItem('gudangPetugas');
 
-    if (!data) return '';
+    // ==========================================================
+    // PETUGAS
+    // ==========================================================
 
-    const petugas = JSON.parse(data);
+    function getPetugas() {
+      try {
+        const data = localStorage.getItem('gudangPetugas');
 
-    return petugas.nama || '';
+        if (!data) return '';
 
-  } catch (err) {
-    console.error('Error getPetugas:', err);
-    return '';
-  }
-}
+        const petugas = JSON.parse(data);
+
+        return petugas.nama || '';
+
+      } catch (err) {
+        console.error('Error getPetugas:', err);
+        return '';
+      }
+    }
+
+
+    // ==========================================================
+    // FORMAT TANGGAL
+    // ==========================================================
 
     function fmtDate(d) {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
 
-  return `${year}-${month}-${day}`;
-}
+      return `${year}-${month}-${day}`;
+    }
+
+
+    // ==========================================================
+    // FORMAT QTY BERDASARKAN SATUAN
+    //
+    // PENTING:
+    // Jangan pernah menjumlahkan qty dengan satuan berbeda.
+    //
+    // Contoh:
+    // 2 kg + 0.5 kg + 100 gram
+    //
+    // Hasil:
+    // 2.5 kg + 100 gram
+    // ==========================================================
+
+    function formatQtyByUnit(data, tipeFilter) {
+
+      const totals = {};
+
+      data.forEach(t => {
+
+        const ket = t.keterangan || '';
+
+        // Jangan hitung transaksi yang dibatalkan
+        if (ket.indexOf('[DIBATALKAN]') !== -1) {
+          return;
+        }
+
+
+        // ------------------------------------------------------
+        // FILTER PRODUKSI
+        // ------------------------------------------------------
+
+        if (tipeFilter === 'PRODUKSI') {
+
+          if (ket.indexOf('Produksi') !== 0) {
+            return;
+          }
+
+        }
+
+        // ------------------------------------------------------
+        // FILTER TRANSAKSI BIASA
+        // ------------------------------------------------------
+
+        else {
+
+          if (t.tipe !== tipeFilter) {
+            return;
+          }
+
+        }
+
+
+        const qty = parseFloat(t.qty) || 0;
+
+        const unit = (t.satuan || '').trim() || '-';
+
+
+        if (!totals[unit]) {
+          totals[unit] = 0;
+        }
+
+        totals[unit] += qty;
+
+      });
+
+
+      const entries = Object.entries(totals);
+
+
+      if (entries.length === 0) {
+        return '0';
+      }
+
+
+      return entries
+        .map(([unit, qty]) => {
+
+          const angka = Number.isInteger(qty)
+            ? qty
+            : parseFloat(qty.toFixed(3));
+
+          return `${angka} ${unit}`;
+
+        })
+        .join(' + ');
+    }
+
+
+    // ==========================================================
+    // KONDISI GUDANG
+    // ==========================================================
 
     async function loadKondisi() {
+
       try {
-        const res = await fetch(`${API_URL}?action=getDashboardData`);
+
+        const res = await fetch(
+          `${API_URL}?action=getDashboardData`
+        );
+
         const data = await res.json();
+
 
         document.getElementById('statGrid').innerHTML = `
-          <div class="statBox"><div class="num">${data.totalJenis}</div><div class="label">Jenis Bahan</div></div>
-          <div class="statBox"><div class="num menipis">${data.menipis}</div><div class="label">Menipis</div></div>
-          <div class="statBox"><div class="num expired">${data.expired + data.expiredSoon}</div><div class="label">Expired/Segera</div></div>
+
+          <div class="statBox">
+            <div class="num">
+              ${data.totalJenis}
+            </div>
+
+            <div class="label">
+              Jenis Bahan
+            </div>
+          </div>
+
+
+          <div class="statBox">
+            <div class="num menipis">
+              ${data.menipis}
+            </div>
+
+            <div class="label">
+              Menipis
+            </div>
+          </div>
+
+
+          <div class="statBox">
+            <div class="num expired">
+              ${data.expired + data.expiredSoon}
+            </div>
+
+            <div class="label">
+              Expired/Segera
+            </div>
+          </div>
+
         `;
 
-        const attEl = document.getElementById('perhatianList');
+
+        const attEl =
+          document.getElementById('perhatianList');
+
+
         if (data.perhatian.length === 0) {
-          attEl.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;margin-top:8px;">Semua bahan aman ✅</p>';
-        } else {
-          attEl.innerHTML = data.perhatian.map(p => {
-            const tagCls = p.status === 'MENIPIS' ? 'menipis' : 'expired';
-            const tagTxt = p.status === 'MENIPIS' ? 'Menipis' : (p.expired ? `Exp ${p.expired}` : 'Expired');
-            return `<div class="attItem"><span>${p.nama}</span><span class="attTag ${tagCls}">${tagTxt}</span></div>`;
-          }).join('');
+
+          attEl.innerHTML = `
+            <p style="
+              color:#8a7566;
+              font-size:0.85rem;
+              margin-top:8px;
+            ">
+              Semua bahan aman ✅
+            </p>
+          `;
+
         }
-      } catch (err) {
-        document.getElementById('statGrid').innerHTML = '<p style="color:#c62828;">Gagal memuat data.</p>';
+
+        else {
+
+          attEl.innerHTML =
+            data.perhatian.map(p => {
+
+              const tagCls =
+                p.status === 'MENIPIS'
+                  ? 'menipis'
+                  : 'expired';
+
+
+              const tagTxt =
+                p.status === 'MENIPIS'
+                  ? 'Menipis'
+                  : (
+                      p.expired
+                        ? `Exp ${p.expired}`
+                        : 'Expired'
+                    );
+
+
+              return `
+                <div class="attItem">
+
+                  <span>
+                    ${p.nama}
+                  </span>
+
+                  <span class="attTag ${tagCls}">
+                    ${tagTxt}
+                  </span>
+
+                </div>
+              `;
+
+            }).join('');
+
+        }
+
+      }
+
+      catch (err) {
+
+        console.error(
+          'Error loadKondisi:',
+          err
+        );
+
+        document.getElementById(
+          'statGrid'
+        ).innerHTML = `
+          <p style="color:#c62828;">
+            Gagal memuat data.
+          </p>
+        `;
       }
     }
 
-    
- document.getElementById('btnLoad').addEventListener('click', loadRingkasan);
+
+    // ==========================================================
+    // BUTTON RINGKASAN
+    // ==========================================================
+
+    document
+      .getElementById('btnLoad')
+      .addEventListener(
+        'click',
+        loadRingkasan
+      );
+
+
+    // ==========================================================
+    // RINGKASAN TRANSAKSI
+    // ==========================================================
 
     async function loadRingkasan() {
-      const box = document.getElementById('ringkasanBox');
+
+      const box =
+        document.getElementById(
+          'ringkasanBox'
+        );
+
       box.innerHTML = 'Memuat...';
+
+
       try {
-        const start = document.getElementById('startDate').value;
-        const end = document.getElementById('endDate').value;
-        let url = `${API_URL}?action=getRiwayat&filterTipe=all`;
-        if (start) url += `&startDate=${start}`;
-        if (end) url += `&endDate=${end}`;
 
-        const res = await fetch(url);
-        const data = await res.json();
+        const start =
+          document.getElementById(
+            'startDate'
+          ).value;
 
-        let masuk = 0, keluar = 0, rusak = 0, opnameCount = 0;
-        const produksiSet = new Set();
-        let produksiQty = 0;
+
+        const end =
+          document.getElementById(
+            'endDate'
+          ).value;
+
+
+        let url =
+          `${API_URL}?action=getRiwayat&filterTipe=all`;
+
+
+        if (start) {
+          url += `&startDate=${start}`;
+        }
+
+
+        if (end) {
+          url += `&endDate=${end}`;
+        }
+
+
+        const res =
+          await fetch(url);
+
+
+        const data =
+          await res.json();
+
+
+        // ======================================================
+        // SESI PRODUKSI
+        // ======================================================
+
+        let opnameCount = 0;
+
+        const produksiSet =
+          new Set();
+
 
         data.forEach(t => {
-          const ket = t.keterangan || '';
-          if (ket.indexOf('[DIBATALKAN]') !== -1) return;
-          const qty = parseFloat(t.qty) || 0;
 
-          if (ket.indexOf('Produksi') === 0) {
-            produksiQty += qty;
-            const m = ket.match(/\[(PRD-[^\]]+)\]/);
-            if (m) produksiSet.add(m[1]);
-          } else if (ket.indexOf('Stock Opname') === 0) {
-            opnameCount++;
-          } else if (t.tipe === 'Masuk') {
-            masuk += qty;
-          } else if (t.tipe === 'Keluar') {
-            keluar += qty;
-          } else if (t.tipe === 'Rusak-Expired') {
-            rusak += qty;
+          const ket =
+            t.keterangan || '';
+
+
+          // Jangan hitung transaksi batal
+          if (
+            ket.indexOf(
+              '[DIBATALKAN]'
+            ) !== -1
+          ) {
+            return;
           }
+
+
+          // ----------------------------------------------------
+          // PRODUKSI
+          // ----------------------------------------------------
+
+          if (
+            ket.indexOf(
+              'Produksi'
+            ) === 0
+          ) {
+
+            const m =
+              ket.match(
+                /\[(PRD-[^\]]+)\]/
+              );
+
+
+            if (m) {
+              produksiSet.add(
+                m[1]
+              );
+            }
+
+          }
+
+
+          // ----------------------------------------------------
+          // STOCK OPNAME
+          // ----------------------------------------------------
+
+          else if (
+            ket.indexOf(
+              'Stock Opname'
+            ) === 0
+          ) {
+
+            opnameCount++;
+
+          }
+
         });
 
+
+        // ======================================================
+        // RENDER RINGKASAN
+        // ======================================================
+
         box.innerHTML = `
+
           <div class="ringkasanGrid">
-            <div class="ringkasanCard"><div class="num">${data.length}</div><div class="label">Total Transaksi</div></div>
-            <div class="ringkasanCard"><div class="num">${masuk}</div><div class="label">Total Masuk (qty)</div></div>
-            <div class="ringkasanCard"><div class="num">${keluar}</div><div class="label">Total Keluar Manual (qty)</div></div>
-            <div class="ringkasanCard"><div class="num">${produksiSet.size}</div><div class="label">Sesi Produksi</div></div>
-            <div class="ringkasanCard"><div class="num">${produksiQty}</div><div class="label">Total Bahan Terpakai Produksi</div></div>
-            <div class="ringkasanCard"><div class="num">${opnameCount}</div><div class="label">Penyesuaian Opname</div></div>
-            <div class="ringkasanCard"><div class="num">${rusak}</div><div class="label">Rusak/Expired (qty)</div></div>
+
+
+            <!-- TOTAL TRANSAKSI -->
+
+            <div class="ringkasanCard">
+
+              <div class="num">
+                ${data.length}
+              </div>
+
+              <div class="label">
+                Total Transaksi
+              </div>
+
+            </div>
+
+
+            <!-- TOTAL MASUK -->
+
+            <div class="ringkasanCard">
+
+              <div class="num">
+                ${formatQtyByUnit(
+                  data,
+                  'Masuk'
+                )}
+              </div>
+
+              <div class="label">
+                Total Masuk
+              </div>
+
+            </div>
+
+
+            <!-- TOTAL KELUAR MANUAL -->
+
+            <div class="ringkasanCard">
+
+              <div class="num">
+                ${formatQtyByUnit(
+                  data,
+                  'Keluar'
+                )}
+              </div>
+
+              <div class="label">
+                Total Keluar Manual
+              </div>
+
+            </div>
+
+
+            <!-- SESI PRODUKSI -->
+
+            <div class="ringkasanCard">
+
+              <div class="num">
+                ${produksiSet.size}
+              </div>
+
+              <div class="label">
+                Sesi Produksi
+              </div>
+
+            </div>
+
+
+            <!-- TOTAL PRODUKSI -->
+
+            <div class="ringkasanCard">
+
+              <div class="num">
+                ${formatQtyByUnit(
+                  data,
+                  'PRODUKSI'
+                )}
+              </div>
+
+              <div class="label">
+                Total Bahan Terpakai Produksi
+              </div>
+
+            </div>
+
+
+            <!-- STOCK OPNAME -->
+
+            <div class="ringkasanCard">
+
+              <div class="num">
+                ${opnameCount}
+              </div>
+
+              <div class="label">
+                Penyesuaian Opname
+              </div>
+
+            </div>
+
+
+            <!-- RUSAK / EXPIRED -->
+
+            <div class="ringkasanCard">
+
+              <div class="num">
+                ${formatQtyByUnit(
+                  data,
+                  'Rusak-Expired'
+                )}
+              </div>
+
+              <div class="label">
+                Rusak / Expired
+              </div>
+
+            </div>
+
+
           </div>
+
         `;
-      } catch (err) {
-        box.innerHTML = '<p style="color:#c62828;">Gagal memuat ringkasan.</p>';
+
+      }
+
+      catch (err) {
+
+        console.error(
+          'Error loadRingkasan:',
+          err
+        );
+
+        box.innerHTML = `
+          <p style="color:#c62828;">
+            Gagal memuat ringkasan.
+          </p>
+        `;
       }
     }
 
-    document.getElementById('btnPdf').addEventListener('click', async () => {
 
-  const msgEl = document.getElementById('pdfMsg');
-  const btn = document.getElementById('btnPdf');
+    // ==========================================================
+    // GENERATE PDF
+    //
+    // JANGAN DIUBAH DULU.
+    // FOOTER PDF KITA GARAP SETELAH FRONTEND LOCK.
+    // ==========================================================
 
-  const tanggal = document.getElementById('startDate').value 
-                  || fmtDate(new Date());
+    document
+      .getElementById('btnPdf')
+      .addEventListener(
+        'click',
+        async () => {
 
-      btn.disabled = true;
-      msgEl.textContent = 'Sedang bikin PDF, tunggu sebentar...';
-      msgEl.className = '';
+          const msgEl =
+            document.getElementById(
+              'pdfMsg'
+            );
 
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-  action: 'generateLaporan',
-  data: {
-    tanggal: tanggal,
-    petugas: getPetugas()
-  }
-})
-        });
-        const result = await res.json();
+          const btn =
+            document.getElementById(
+              'btnPdf'
+            );
 
-        if (result.success) {
-          msgEl.innerHTML = `PDF berhasil dibuat! <a href="${result.pdfUrl}" target="_blank">Buka PDF</a>`;
-          msgEl.className = 'ok';
-        } else {
-          msgEl.textContent = 'Gagal: ' + (result.message || 'unknown error');
-          msgEl.className = 'err';
+
+          const tanggal =
+            document.getElementById(
+              'startDate'
+            ).value
+            || fmtDate(
+              new Date()
+            );
+
+
+          btn.disabled = true;
+
+          msgEl.textContent =
+            'Sedang bikin PDF, tunggu sebentar...';
+
+          msgEl.className = '';
+
+
+          try {
+
+            const res =
+              await fetch(
+                API_URL,
+                {
+                  method: 'POST',
+
+                  headers: {
+                    'Content-Type':
+                      'text/plain;charset=utf-8'
+                  },
+
+                  body: JSON.stringify({
+                    action:
+                      'generateLaporan',
+
+                    data: {
+                      tanggal:
+                        tanggal,
+
+                      petugas:
+                        getPetugas()
+                    }
+                  })
+                }
+              );
+
+
+            const result =
+              await res.json();
+
+
+            if (result.success) {
+
+              msgEl.innerHTML = `
+                PDF berhasil dibuat!
+                <a
+                  href="${result.pdfUrl}"
+                  target="_blank"
+                >
+                  Buka PDF
+                </a>
+              `;
+
+              msgEl.className =
+                'ok';
+
+            }
+
+            else {
+
+              msgEl.textContent =
+                'Gagal: ' +
+                (
+                  result.message
+                  || 'unknown error'
+                );
+
+              msgEl.className =
+                'err';
+
+            }
+
+          }
+
+          catch (err) {
+
+            console.error(
+              'ERROR generateLaporan:',
+              err
+            );
+
+            msgEl.textContent =
+              'Error: ' +
+              err.message;
+
+            msgEl.className =
+              'err';
+
+          }
+
+          finally {
+
+            btn.disabled = false;
+
+          }
+
         }
-      } catch (err) {
-  console.error("ERROR generateLaporan:", err);
-  msgEl.textContent = 'Error: ' + err.message;
-  msgEl.className = 'err';
-}finally {
-        btn.disabled = false;
-      }
-    });
+      );
+
+
+    // ==========================================================
+    // INIT
+    // ==========================================================
 
     loadKondisi();
+
   </script>
 </Layout>
