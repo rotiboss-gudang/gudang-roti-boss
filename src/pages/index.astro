@@ -39,7 +39,9 @@ import Layout from "../layouts/Layout.astro";
       font-weight: 700;
     }
 
-    .grid .card:last-child .num {
+    /* Supaya teks panjang (multi satuan) tetap muat */
+    .grid .card:nth-child(5) .num,
+    .grid .card:nth-child(6) .num {
       font-size: 1rem;
       line-height: 1.4;
     }
@@ -50,21 +52,10 @@ import Layout from "../layouts/Layout.astro";
       margin-top: 4px;
     }
 
-    .aman {
-      color: #2e7d32;
-    }
-
-    .menipis {
-      color: #e07a1a;
-    }
-
-    .expired {
-      color: #c62828;
-    }
-
-    .default {
-      color: #4a2f22;
-    }
+    .aman { color: #2e7d32; }
+    .menipis { color: #e07a1a; }
+    .expired { color: #c62828; }
+    .default { color: #4a2f22; }
 
     .item {
       display: flex;
@@ -108,100 +99,56 @@ import Layout from "../layouts/Layout.astro";
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL;
 
-    // ============================================================
-    // FORMAT KELUAR (dari array of object → string)
-    // Contoh hasil: "0.5 kg + 1000 gram + 50 butir"
-    // ============================================================
-    function formatKeluarDetail(detail) {
-      if (!Array.isArray(detail) || detail.length === 0) {
-        return "0";
-      }
+    // Format array of object → string
+    // Contoh: "200 gram + 15 kg"
+    function formatBySatuan(detail) {
+      if (!Array.isArray(detail) || detail.length === 0) return "0";
 
       return detail
         .map((item) => {
           const qty = Number(item.qty) || 0;
           const satuan = String(item.satuan || "").trim() || "pcs";
-
-          const angka = Number.isInteger(qty)
-            ? qty
-            : Number(qty.toFixed(3));
-
+          const angka = Number.isInteger(qty) ? qty : Number(qty.toFixed(3));
           return `${angka} ${satuan}`;
         })
         .join(" + ");
     }
 
-    // ============================================================
-    // LOAD DASHBOARD
-    // ============================================================
     async function loadDashboard() {
       try {
         const res = await fetch(`${API_URL}?action=getDashboardData`);
-
-        if (!res.ok) {
-          throw new Error("Gagal mengambil data API");
-        }
+        if (!res.ok) throw new Error("Gagal mengambil data API");
 
         const data = await res.json();
 
-        // ========================================================
-        // STAT DASHBOARD
-        // ========================================================
-        const keluarFormatted = formatKeluarDetail(
+        const masukFormatted = formatBySatuan(
+          data.masukHariIni || data.masukHariIniDetail
+        );
+        const keluarFormatted = formatBySatuan(
           data.keluarHariIni || data.keluarHariIniDetail
         );
 
         const stats = [
-          {
-            num: data.totalJenis ?? 0,
-            label: "Jenis Bahan",
-            cls: "default",
-          },
-          {
-            num: data.aman ?? 0,
-            label: "Stok Aman",
-            cls: "aman",
-          },
-          {
-            num: data.menipis ?? 0,
-            label: "Menipis",
-            cls: "menipis",
-          },
-          {
-            num: data.expired ?? 0,
-            label: "Expired",
-            cls: "expired",
-          },
-          {
-            num: data.masukHariIni ?? 0,
-            label: "Masuk Hari Ini",
-            cls: "default",
-          },
-          {
-            num: keluarFormatted,
-            label: "Keluar Hari Ini",
-            cls: "default",
-          },
+          { num: data.totalJenis ?? 0, label: "Jenis Bahan", cls: "default" },
+          { num: data.aman ?? 0, label: "Stok Aman", cls: "aman" },
+          { num: data.menipis ?? 0, label: "Menipis", cls: "menipis" },
+          { num: data.expired ?? 0, label: "Expired", cls: "expired" },
+          { num: masukFormatted, label: "Masuk Hari Ini", cls: "default" },
+          { num: keluarFormatted, label: "Keluar Hari Ini", cls: "default" },
         ];
 
         document.getElementById("statGrid").innerHTML = stats
           .map(
             (s) => `
             <div class="card">
-              <div class="num ${s.cls}">
-                ${s.num}
-              </div>
-              <div class="label">
-                ${s.label}
-              </div>
+              <div class="num \( {s.cls}"> \){s.num}</div>
+              <div class="label">${s.label}</div>
             </div>
           `
           )
           .join("");
 
-        // ========================================================
-        // PERLU PERHATIAN
-        // ========================================================
+        // Perlu Perhatian
         const perhatianEl = document.getElementById("perhatianList");
 
         if (!data.perhatian || data.perhatian.length === 0) {
@@ -212,9 +159,7 @@ import Layout from "../layouts/Layout.astro";
         } else {
           perhatianEl.innerHTML = data.perhatian
             .map((p) => {
-              const tagCls =
-                p.status === "MENIPIS" ? "menipis" : "expired";
-
+              const tagCls = p.status === "MENIPIS" ? "menipis" : "expired";
               const tagText =
                 p.status === "MENIPIS"
                   ? "Menipis"
@@ -237,22 +182,15 @@ import Layout from "../layouts/Layout.astro";
             .join("");
         }
 
-        // ========================================================
-        // TAMPILKAN DASHBOARD
-        // ========================================================
         document.getElementById("loading").style.display = "none";
         document.getElementById("content").style.display = "block";
       } catch (err) {
         console.error("ERROR loadDashboard:", err);
-
         document.getElementById("loading").style.display = "none";
         document.getElementById("error").style.display = "block";
       }
     }
 
-    // ============================================================
-    // START
-    // ============================================================
     loadDashboard();
   </script>
 </Layout>
