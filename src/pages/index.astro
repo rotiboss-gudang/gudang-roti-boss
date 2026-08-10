@@ -37,10 +37,13 @@ import Layout from "../layouts/Layout.astro";
     .grid .num {
       font-size: 1.8rem;
       font-weight: 700;
-      line-height: 1.2;
-      word-break: break-word;
     }
 
+.grid .card:last-child .num {
+  font-size: 1rem;
+  line-height: 1.4;
+    }
+     
     .grid .label {
       font-size: 0.75rem;
       color: #8a7566;
@@ -212,45 +215,18 @@ import Layout from "../layouts/Layout.astro";
         // STAT DASHBOARD
         // ========================================================
 
-        const stats = [
+        const keluarText = (data.keluarHariIni || [])
+  .map(item => `${item.qty} ${item.satuan}`)
+  .join(" + ") || "0";
 
-          {
-            num: data.totalJenis,
-            label: "Jenis Bahan",
-            cls: "default"
-          },
-
-          {
-            num: data.aman,
-            label: "Stok Aman",
-            cls: "aman"
-          },
-
-          {
-            num: data.menipis,
-            label: "Menipis",
-            cls: "menipis"
-          },
-
-          {
-            num: data.expired,
-            label: "Expired",
-            cls: "expired"
-          },
-
-          {
-            num: masukHariIni,
-            label: "Masuk Hari Ini",
-            cls: "default"
-          },
-
-          {
-            num: keluarHariIni,
-            label: "Keluar Hari Ini",
-            cls: "default"
-          }
-
-        ];
+const stats = [
+  { num: data.totalJenis, label: "Jenis Bahan", cls: "default" },
+  { num: data.aman, label: "Stok Aman", cls: "aman" },
+  { num: data.menipis, label: "Menipis", cls: "menipis" },
+  { num: data.expired, label: "Expired", cls: "expired" },
+  { num: data.masukHariIni, label: "Masuk Hari Ini", cls: "default" },
+  { num: keluarText, label: "Keluar Hari Ini", cls: "default" }
+];
 
 
         document.getElementById("statGrid").innerHTML =
