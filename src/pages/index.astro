@@ -39,11 +39,11 @@ import Layout from "../layouts/Layout.astro";
       font-weight: 700;
     }
 
-.grid .card:last-child .num {
-  font-size: 1rem;
-  line-height: 1.4;
+    .grid .card:last-child .num {
+      font-size: 1rem;
+      line-height: 1.4;
     }
-     
+
     .grid .label {
       font-size: 0.75rem;
       color: #8a7566;
@@ -109,265 +109,150 @@ import Layout from "../layouts/Layout.astro";
     const API_URL = import.meta.env.PUBLIC_API_URL;
 
     // ============================================================
-    // HELPER — FORMAT QTY BERDASARKAN SATUAN
-    // Contoh:
-    // 0.5 kg + 1000 gram + 50 butir
+    // FORMAT KELUAR (dari array of object → string)
+    // Contoh hasil: "0.5 kg + 1000 gram + 50 butir"
     // ============================================================
-    function formatQtyBySatuan(transactions, tipe) {
-      const grouped = {};
+    function formatKeluarDetail(detail) {
+      if (!Array.isArray(detail) || detail.length === 0) {
+        return "0";
+      }
 
-      transactions.forEach(t => {
-        const ket = t.keterangan || "";
+      return detail
+        .map((item) => {
+          const qty = Number(item.qty) || 0;
+          const satuan = String(item.satuan || "").trim() || "pcs";
 
-        // Abaikan transaksi batal
-        if (ket.includes("[DIBATALKAN]")) return;
-
-        // Hanya tipe yang diminta
-        if (t.tipe !== tipe) return;
-
-        // Produksi bukan keluar manual
-        if (ket.startsWith("Produksi")) return;
-
-        // Stock Opname bukan transaksi manual
-        if (ket.startsWith("Stock Opname")) return;
-
-        const qty = Number(t.qty) || 0;
-        const satuan = String(t.satuan || "").trim();
-
-        if (!satuan || qty === 0) return;
-
-        if (!grouped[satuan]) {
-          grouped[satuan] = 0;
-        }
-
-        grouped[satuan] += qty;
-      });
-
-      const hasil = Object.entries(grouped)
-        .map(([satuan, qty]) => {
           const angka = Number.isInteger(qty)
             ? qty
             : Number(qty.toFixed(3));
 
           return `${angka} ${satuan}`;
-        });
-
-      return hasil.length > 0
-        ? hasil.join(" + ")
-        : "0";
+        })
+        .join(" + ");
     }
-
 
     // ============================================================
     // LOAD DASHBOARD
     // ============================================================
     async function loadDashboard() {
-
       try {
+        const res = await fetch(`${API_URL}?action=getDashboardData`);
 
-        const today = new Date();
-
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, "0");
-        const day = String(today.getDate()).padStart(2, "0");
-
-        const tanggal =
-          `${year}-${month}-${day}`;
-
-
-        // Ambil dashboard + riwayat hari ini
-        const [dashboardRes, riwayatRes] = await Promise.all([
-
-          fetch(`${API_URL}?action=getDashboardData`),
-
-          fetch(
-            `${API_URL}?action=getRiwayat` +
-            `&filterTipe=all` +
-            `&startDate=${tanggal}` +
-            `&endDate=${tanggal}`
-          )
-
-        ]);
-
-
-        if (!dashboardRes.ok || !riwayatRes.ok) {
+        if (!res.ok) {
           throw new Error("Gagal mengambil data API");
         }
 
-
-        const data = await dashboardRes.json();
-
-        const riwayat = await riwayatRes.json();
-
-
-        // ========================================================
-        // HITUNG QTY HARI INI BERDASARKAN SATUAN
-        // ========================================================
-
-        const masukHariIni =
-          formatQtyBySatuan(riwayat, "Masuk");
-
-        const keluarHariIni =
-          formatQtyBySatuan(riwayat, "Keluar");
-
+        const data = await res.json();
 
         // ========================================================
         // STAT DASHBOARD
         // ========================================================
+        const keluarFormatted = formatKeluarDetail(
+          data.keluarHariIni || data.keluarHariIniDetail
+        );
 
         const stats = [
-  {
-    num: data.totalJenis,
-    label: "Jenis Bahan",
-    cls: "default"
-  },
-  {
-    num: data.aman,
-    label: "Stok Aman",
-    cls: "aman"
-  },
-  {
-    num: data.menipis,
-    label: "Menipis",
-    cls: "menipis"
-  },
-  {
-    num: data.expired,
-    label: "Expired",
-    cls: "expired"
-  },
-  {
-    num: masukHariIni,
-    label: "Masuk Hari Ini",
-    cls: "default"
-  },
-  {
-    num: keluarHariIni,
-    label: "Keluar Hari Ini",
-    cls: "default"
-  }
-];
+          {
+            num: data.totalJenis ?? 0,
+            label: "Jenis Bahan",
+            cls: "default",
+          },
+          {
+            num: data.aman ?? 0,
+            label: "Stok Aman",
+            cls: "aman",
+          },
+          {
+            num: data.menipis ?? 0,
+            label: "Menipis",
+            cls: "menipis",
+          },
+          {
+            num: data.expired ?? 0,
+            label: "Expired",
+            cls: "expired",
+          },
+          {
+            num: data.masukHariIni ?? 0,
+            label: "Masuk Hari Ini",
+            cls: "default",
+          },
+          {
+            num: keluarFormatted,
+            label: "Keluar Hari Ini",
+            cls: "default",
+          },
+        ];
 
-
-        document.getElementById("statGrid").innerHTML =
-          stats.map(s => `
-
+        document.getElementById("statGrid").innerHTML = stats
+          .map(
+            (s) => `
             <div class="card">
-
               <div class="num ${s.cls}">
                 ${s.num}
               </div>
-
               <div class="label">
                 ${s.label}
               </div>
-
             </div>
-
-          `).join("");
-
+          `
+          )
+          .join("");
 
         // ========================================================
         // PERLU PERHATIAN
         // ========================================================
-
-        const perhatianEl =
-          document.getElementById("perhatianList");
-
+        const perhatianEl = document.getElementById("perhatianList");
 
         if (!data.perhatian || data.perhatian.length === 0) {
-
-          perhatianEl.innerHTML =
-            `<p style="color:#8a7566;font-size:0.85rem;">
+          perhatianEl.innerHTML = `
+            <p style="color:#8a7566;font-size:0.85rem;">
               Semua bahan aman ✅
             </p>`;
-
         } else {
-
-          perhatianEl.innerHTML =
-            data.perhatian.map(p => {
-
+          perhatianEl.innerHTML = data.perhatian
+            .map((p) => {
               const tagCls =
-                p.status === "MENIPIS"
-                  ? "menipis"
-                  : "expired";
-
+                p.status === "MENIPIS" ? "menipis" : "expired";
 
               const tagText =
                 p.status === "MENIPIS"
                   ? "Menipis"
-                  : (
-                      p.expired
-                        ? `Exp ${p.expired}`
-                        : "Expired"
-                    );
-
+                  : p.expired
+                    ? `Exp ${p.expired}`
+                    : "Expired";
 
               return `
-
                 <div class="item">
-
                   <div>
-
-                    <div class="nama">
-                      ${p.nama}
-                    </div>
-
+                    <div class="nama">${p.nama}</div>
                     <div class="sub">
-                      Stok: ${p.stok} ${p.satuan}
-                      |
-                      Min: ${p.minStok}
+                      Stok: ${p.stok} ${p.satuan} | Min: ${p.minStok}
                     </div>
-
                   </div>
-
-                  <span class="tag ${tagCls}">
-                    ${tagText}
-                  </span>
-
+                  <span class="tag \( {tagCls}"> \){tagText}</span>
                 </div>
-
               `;
-
-            }).join("");
-
+            })
+            .join("");
         }
-
 
         // ========================================================
         // TAMPILKAN DASHBOARD
         // ========================================================
-
-        document.getElementById("loading").style.display =
-          "none";
-
-        document.getElementById("content").style.display =
-          "block";
-
-
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("content").style.display = "block";
       } catch (err) {
+        console.error("ERROR loadDashboard:", err);
 
-        console.error(
-          "ERROR loadDashboard:",
-          err
-        );
-
-        document.getElementById("loading").style.display =
-          "none";
-
-        document.getElementById("error").style.display =
-          "block";
-
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("error").style.display = "block";
       }
-
     }
-
 
     // ============================================================
     // START
     // ============================================================
-
     loadDashboard();
-
   </script>
 </Layout>
