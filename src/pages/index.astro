@@ -3,9 +3,17 @@ import Layout from "../layouts/Layout.astro";
 ---
 <Layout active="dashboard">
   <div id="loading">Memuat data...</div>
-  <div id="error" style="display:none; text-align:center; padding:24px; color:#c62828;">Gagal memuat data. Cek koneksi atau URL API.</div>
+
+  <div
+    id="error"
+    style="display:none; text-align:center; padding:24px; color:#c62828;"
+  >
+    Gagal memuat data. Cek koneksi atau URL API.
+  </div>
+
   <div id="content" style="display:none;">
     <div class="grid" id="statGrid"></div>
+
     <div class="card">
       <h2 style="margin-bottom:12px;">⚠️ Perlu Perhatian</h2>
       <div id="perhatianList"></div>
@@ -13,72 +21,357 @@ import Layout from "../layouts/Layout.astro";
   </div>
 
   <style is:global>
-    .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-    .grid .card { text-align: center; padding: 16px 8px; margin-bottom: 0; }
-    .grid .num { font-size: 1.8rem; font-weight: 700; }
-    .grid .label { font-size: 0.75rem; color: #8a7566; margin-top: 4px; }
-    .aman { color: #2e7d32; } .menipis { color: #e07a1a; } .expired { color: #c62828; } .default { color: #4a2f22; }
-    .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-    .item:last-child { border-bottom: none; }
-    .item .nama { font-weight: 600; font-size: 0.9rem; }
-    .item .sub { font-size: 0.78rem; color: #8a7566; }
-    .tag { font-size: 0.72rem; padding: 4px 10px; border-radius: 20px; }
-    .tag.menipis { background: #fdecd2; color: #b5651d; }
-    .tag.expired { background: #fbdcdc; color: #b52a2a; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .grid .card {
+      text-align: center;
+      padding: 16px 8px;
+      margin-bottom: 0;
+    }
+
+    .grid .num {
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+
+    .grid .label {
+      font-size: 0.75rem;
+      color: #8a7566;
+      margin-top: 4px;
+    }
+
+    .aman {
+      color: #2e7d32;
+    }
+
+    .menipis {
+      color: #e07a1a;
+    }
+
+    .expired {
+      color: #c62828;
+    }
+
+    .default {
+      color: #4a2f22;
+    }
+
+    .item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .item:last-child {
+      border-bottom: none;
+    }
+
+    .item .nama {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .item .sub {
+      font-size: 0.78rem;
+      color: #8a7566;
+    }
+
+    .tag {
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .tag.menipis {
+      background: #fdecd2;
+      color: #b5651d;
+    }
+
+    .tag.expired {
+      background: #fbdcdc;
+      color: #b52a2a;
+    }
   </style>
 
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL;
 
-    async function loadDashboard() {
-      try {
-        const res = await fetch(`${API_URL}?action=getDashboardData`);
-        const data = await res.json();
+    // ============================================================
+    // HELPER — FORMAT QTY BERDASARKAN SATUAN
+    // Contoh:
+    // 0.5 kg + 1000 gram + 50 butir
+    // ============================================================
+    function formatQtyBySatuan(transactions, tipe) {
+      const grouped = {};
 
-        const stats = [
-          { num: data.totalJenis, label: "Jenis Bahan", cls: "default" },
-          { num: data.aman, label: "Stok Aman", cls: "aman" },
-          { num: data.menipis, label: "Menipis", cls: "menipis" },
-          { num: data.expired, label: "Expired", cls: "expired" },
-          { num: data.masukHariIni, label: "Masuk Hari Ini", cls: "default" },
-          { num: data.keluarHariIni, label: "Keluar Hari Ini", cls: "default" }
-        ];
+      transactions.forEach(t => {
+        const ket = t.keterangan || "";
 
-        document.getElementById('statGrid').innerHTML = stats.map(s => `
-          <div class="card">
-            <div class="num ${s.cls}">${s.num}</div>
-            <div class="label">${s.label}</div>
-          </div>
-        `).join('');
+        // Abaikan transaksi batal
+        if (ket.includes("[DIBATALKAN]")) return;
 
-        const perhatianEl = document.getElementById('perhatianList');
-        if (data.perhatian.length === 0) {
-          perhatianEl.innerHTML = `<p style="color:#8a7566;font-size:0.85rem;">Semua bahan aman ✅</p>`;
-        } else {
-          perhatianEl.innerHTML = data.perhatian.map(p => {
-            const tagCls = p.status === "MENIPIS" ? "menipis" : "expired";
-            const tagText = p.status === "MENIPIS" ? "Menipis" : (p.expired ? `Exp ${p.expired}` : "Expired");
-            return `
-              <div class="item">
-                <div>
-                  <div class="nama">${p.nama}</div>
-                  <div class="sub">Stok: ${p.stok} ${p.satuan} | Min: ${p.minStok}</div>
-                </div>
-                <span class="tag ${tagCls}">${tagText}</span>
-              </div>
-            `;
-          }).join('');
+        // Hanya tipe yang diminta
+        if (t.tipe !== tipe) return;
+
+        // Produksi bukan keluar manual
+        if (ket.startsWith("Produksi")) return;
+
+        // Stock Opname bukan transaksi manual
+        if (ket.startsWith("Stock Opname")) return;
+
+        const qty = Number(t.qty) || 0;
+        const satuan = String(t.satuan || "").trim();
+
+        if (!satuan || qty === 0) return;
+
+        if (!grouped[satuan]) {
+          grouped[satuan] = 0;
         }
 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('content').style.display = 'block';
-      } catch (err) {
-        console.error(err);
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'block';
-      }
+        grouped[satuan] += qty;
+      });
+
+      const hasil = Object.entries(grouped)
+        .map(([satuan, qty]) => {
+          const angka = Number.isInteger(qty)
+            ? qty
+            : Number(qty.toFixed(3));
+
+          return `${angka} ${satuan}`;
+        });
+
+      return hasil.length > 0
+        ? hasil.join(" + ")
+        : "0";
     }
 
+
+    // ============================================================
+    // LOAD DASHBOARD
+    // ============================================================
+    async function loadDashboard() {
+
+      try {
+
+        const today = new Date();
+
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
+
+        const tanggal =
+          `${year}-${month}-${day}`;
+
+
+        // Ambil dashboard + riwayat hari ini
+        const [dashboardRes, riwayatRes] = await Promise.all([
+
+          fetch(`${API_URL}?action=getDashboardData`),
+
+          fetch(
+            `${API_URL}?action=getRiwayat` +
+            `&filterTipe=all` +
+            `&startDate=${tanggal}` +
+            `&endDate=${tanggal}`
+          )
+
+        ]);
+
+
+        if (!dashboardRes.ok || !riwayatRes.ok) {
+          throw new Error("Gagal mengambil data API");
+        }
+
+
+        const data = await dashboardRes.json();
+
+        const riwayat = await riwayatRes.json();
+
+
+        // ========================================================
+        // HITUNG QTY HARI INI BERDASARKAN SATUAN
+        // ========================================================
+
+        const masukHariIni =
+          formatQtyBySatuan(riwayat, "Masuk");
+
+        const keluarHariIni =
+          formatQtyBySatuan(riwayat, "Keluar");
+
+
+        // ========================================================
+        // STAT DASHBOARD
+        // ========================================================
+
+        const stats = [
+
+          {
+            num: data.totalJenis,
+            label: "Jenis Bahan",
+            cls: "default"
+          },
+
+          {
+            num: data.aman,
+            label: "Stok Aman",
+            cls: "aman"
+          },
+
+          {
+            num: data.menipis,
+            label: "Menipis",
+            cls: "menipis"
+          },
+
+          {
+            num: data.expired,
+            label: "Expired",
+            cls: "expired"
+          },
+
+          {
+            num: masukHariIni,
+            label: "Masuk Hari Ini",
+            cls: "default"
+          },
+
+          {
+            num: keluarHariIni,
+            label: "Keluar Hari Ini",
+            cls: "default"
+          }
+
+        ];
+
+
+        document.getElementById("statGrid").innerHTML =
+          stats.map(s => `
+
+            <div class="card">
+
+              <div class="num ${s.cls}">
+                ${s.num}
+              </div>
+
+              <div class="label">
+                ${s.label}
+              </div>
+
+            </div>
+
+          `).join("");
+
+
+        // ========================================================
+        // PERLU PERHATIAN
+        // ========================================================
+
+        const perhatianEl =
+          document.getElementById("perhatianList");
+
+
+        if (!data.perhatian || data.perhatian.length === 0) {
+
+          perhatianEl.innerHTML =
+            `<p style="color:#8a7566;font-size:0.85rem;">
+              Semua bahan aman ✅
+            </p>`;
+
+        } else {
+
+          perhatianEl.innerHTML =
+            data.perhatian.map(p => {
+
+              const tagCls =
+                p.status === "MENIPIS"
+                  ? "menipis"
+                  : "expired";
+
+
+              const tagText =
+                p.status === "MENIPIS"
+                  ? "Menipis"
+                  : (
+                      p.expired
+                        ? `Exp ${p.expired}`
+                        : "Expired"
+                    );
+
+
+              return `
+
+                <div class="item">
+
+                  <div>
+
+                    <div class="nama">
+                      ${p.nama}
+                    </div>
+
+                    <div class="sub">
+                      Stok: ${p.stok} ${p.satuan}
+                      |
+                      Min: ${p.minStok}
+                    </div>
+
+                  </div>
+
+                  <span class="tag ${tagCls}">
+                    ${tagText}
+                  </span>
+
+                </div>
+
+              `;
+
+            }).join("");
+
+        }
+
+
+        // ========================================================
+        // TAMPILKAN DASHBOARD
+        // ========================================================
+
+        document.getElementById("loading").style.display =
+          "none";
+
+        document.getElementById("content").style.display =
+          "block";
+
+
+      } catch (err) {
+
+        console.error(
+          "ERROR loadDashboard:",
+          err
+        );
+
+        document.getElementById("loading").style.display =
+          "none";
+
+        document.getElementById("error").style.display =
+          "block";
+
+      }
+
+    }
+
+
+    // ============================================================
+    // START
+    // ============================================================
+
     loadDashboard();
+
   </script>
 </Layout>
