@@ -99,98 +99,96 @@ import Layout from "../layouts/Layout.astro";
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL;
 
-    // Format array of object → string
-    // Contoh: "200 gram + 15 kg"
-    function formatBySatuan(detail) {
-      if (!Array.isArray(detail) || detail.length === 0) return "0";
+function formatBySatuan(detail) {
+  if (!Array.isArray(detail) || detail.length === 0) return "0";
 
-      return detail
-        .map((item) => {
-          const qty = Number(item.qty) || 0;
-          const satuan = String(item.satuan || "").trim() || "pcs";
-          const angka = Number.isInteger(qty) ? qty : Number(qty.toFixed(3));
-          return `${angka} ${satuan}`;
-        })
-        .join(" + ");
-    }
+  return detail
+    .map((item) => {
+      const qty = Number(item.qty) || 0;
+      const satuan = String(item.satuan || "").trim() || "pcs";
+      const angka = Number.isInteger(qty) ? qty : Number(qty.toFixed(3));
+      return `${angka} ${satuan}`;
+    })
+    .join(" + ");
+}
 
-    async function loadDashboard() {
-      try {
-        const res = await fetch(`${API_URL}?action=getDashboardData`);
-        if (!res.ok) throw new Error("Gagal mengambil data API");
+async function loadDashboard() {
+  try {
+    const res = await fetch(`${API_URL}?action=getDashboardData`);
+    if (!res.ok) throw new Error("Gagal mengambil data API");
 
-        const data = await res.json();
+    const data = await res.json();
 
-        const masukFormatted = formatBySatuan(
-          data.masukHariIni || data.masukHariIniDetail
-        );
-        const keluarFormatted = formatBySatuan(
-          data.keluarHariIni || data.keluarHariIniDetail
-        );
+    // Debug (bisa dihapus nanti)
+    console.log("masukHariIni:", data.masukHariIni);
+    console.log("keluarHariIni:", data.keluarHariIni);
 
-        const stats = [
-          { num: data.totalJenis ?? 0, label: "Jenis Bahan", cls: "default" },
-          { num: data.aman ?? 0, label: "Stok Aman", cls: "aman" },
-          { num: data.menipis ?? 0, label: "Menipis", cls: "menipis" },
-          { num: data.expired ?? 0, label: "Expired", cls: "expired" },
-          { num: masukFormatted, label: "Masuk Hari Ini", cls: "default" },
-          { num: keluarFormatted, label: "Keluar Hari Ini", cls: "default" },
-        ];
+    const masukFormatted = formatBySatuan(data.masukHariIni || data.masukHariIniDetail);
+    const keluarFormatted = formatBySatuan(data.keluarHariIni || data.keluarHariIniDetail);
 
-        document.getElementById("statGrid").innerHTML = stats
-          .map(
-            (s) => `
-            <div class="card">
-              <div class="num \( {s.cls}"> \){s.num}</div>
-              <div class="label">${s.label}</div>
-            </div>
-          `
-          )
-          .join("");
+    const stats = [
+      { num: data.totalJenis ?? 0, label: "Jenis Bahan", cls: "default" },
+      { num: data.aman ?? 0, label: "Stok Aman", cls: "aman" },
+      { num: data.menipis ?? 0, label: "Menipis", cls: "menipis" },
+      { num: data.expired ?? 0, label: "Expired", cls: "expired" },
+      { num: masukFormatted, label: "Masuk Hari Ini", cls: "default" },
+      { num: keluarFormatted, label: "Keluar Hari Ini", cls: "default" },
+    ];
 
-        // Perlu Perhatian
-        const perhatianEl = document.getElementById("perhatianList");
+    document.getElementById("statGrid").innerHTML = stats
+      .map(
+        (s) => `
+        <div class="card">
+          <div class="num \( {s.cls}"> \){s.num}</div>
+          <div class="label">${s.label}</div>
+        </div>
+      `
+      )
+      .join("");
 
-        if (!data.perhatian || data.perhatian.length === 0) {
-          perhatianEl.innerHTML = `
-            <p style="color:#8a7566;font-size:0.85rem;">
-              Semua bahan aman ✅
-            </p>`;
-        } else {
-          perhatianEl.innerHTML = data.perhatian
-            .map((p) => {
-              const tagCls = p.status === "MENIPIS" ? "menipis" : "expired";
-              const tagText =
-                p.status === "MENIPIS"
-                  ? "Menipis"
-                  : p.expired
-                    ? `Exp ${p.expired}`
-                    : "Expired";
+    // Perlu Perhatian
+    const perhatianEl = document.getElementById("perhatianList");
 
-              return `
-                <div class="item">
-                  <div>
-                    <div class="nama">${p.nama}</div>
-                    <div class="sub">
-                      Stok: ${p.stok} ${p.satuan} | Min: ${p.minStok}
-                    </div>
-                  </div>
-                  <span class="tag \( {tagCls}"> \){tagText}</span>
+    if (!data.perhatian || data.perhatian.length === 0) {
+      perhatianEl.innerHTML = `
+        <p style="color:#8a7566;font-size:0.85rem;">
+          Semua bahan aman ✅
+        </p>`;
+    } else {
+      perhatianEl.innerHTML = data.perhatian
+        .map((p) => {
+          const tagCls = p.status === "MENIPIS" ? "menipis" : "expired";
+          const tagText =
+            p.status === "MENIPIS"
+              ? "Menipis"
+              : p.expired
+                ? `Exp ${p.expired}`
+                : "Expired";
+
+          return `
+            <div class="item">
+              <div>
+                <div class="nama">${p.nama}</div>
+                <div class="sub">
+                  Stok: ${p.stok} ${p.satuan} | Min: ${p.minStok}
                 </div>
-              `;
-            })
-            .join("");
-        }
-
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("content").style.display = "block";
-      } catch (err) {
-        console.error("ERROR loadDashboard:", err);
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("error").style.display = "block";
-      }
+              </div>
+              <span class="tag \( {tagCls}"> \){tagText}</span>
+            </div>
+          `;
+        })
+        .join("");
     }
 
-    loadDashboard();
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("content").style.display = "block";
+  } catch (err) {
+    console.error("ERROR loadDashboard:", err);
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("error").style.display = "block";
+  }
+}
+
+loadDashboard();
   </script>
 </Layout>
