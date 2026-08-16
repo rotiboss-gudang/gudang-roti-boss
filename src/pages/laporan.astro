@@ -760,20 +760,23 @@ import Layout from "../layouts/Layout.astro";
 
       }
 
-      catch (err) {
+          catch (err) {
 
-        console.error(
-          'Error loadRingkasan:',
-          err
-        );
+      console.error(
+        'Error loadRingkasan:',
+        err
+      );
 
-        box.innerHTML = `
-          <p style="color:#c62828;">
-            Gagal memuat ringkasan.
-          </p>
-        `;
-      }
-    
+      box.innerHTML = `
+        <p style="color:#c62828;">
+          Gagal memuat ringkasan.
+        </p>
+      `;
+    }
+
+  } // ← tutup function loadRingkasan
+
+
 // ==========================================================
 // GENERATE PDF
 // ==========================================================
@@ -795,8 +798,14 @@ async function generatePdf(reportType) {
   ];
 
   buttons.forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.disabled = true;
+
+    const btn =
+      document.getElementById(id);
+
+    if (btn) {
+      btn.disabled = true;
+    }
+
   });
 
   msgEl.textContent =
@@ -832,6 +841,7 @@ async function generatePdf(reportType) {
             }
 
           })
+
         }
       );
 
@@ -915,7 +925,6 @@ document
     () => generatePdf('daily')
   );
 
-
 document
   .getElementById('btnPdfMingguan')
   .addEventListener(
@@ -923,14 +932,12 @@ document
     () => generatePdf('weekly')
   );
 
-
 document
   .getElementById('btnPdfBulanan')
   .addEventListener(
     'click',
     () => generatePdf('monthly')
   );
-
 
 document
   .getElementById('btnPdfOpname')
@@ -940,11 +947,11 @@ document
   );
 
 
-    // ==========================================================
-    // INIT
-    // ==========================================================
+// ==========================================================
+// INIT
+// ==========================================================
 
-    loadKondisi();
+loadKondisi();
 
   </script>
 </Layout>
