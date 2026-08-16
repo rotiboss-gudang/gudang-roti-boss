@@ -32,18 +32,34 @@ import Layout from "../layouts/Layout.astro";
   </div>
 
   <div class="card">
-    <h2 class="sectionTitle">📄 Laporan PDF</h2>
+  <h2 class="sectionTitle">📄 Laporan PDF</h2>
 
-    <p class="hint">
-      CETAK laporan HARIAN atau TANGGAL YANG DIPILIH format PDF
-    </p>
+  <p class="hint">
+    Pilih tanggal acuan, lalu cetak laporan sesuai kebutuhan.
+  </p>
 
-    <button id="btnPdf" class="btn-primary">
-      📄 CETAK Laporan Sekarang
+  <div class="pdfGrid">
+
+    <button id="btnPdfHarian" class="btn-primary">
+      📄 Laporan Harian
     </button>
 
-    <div id="pdfMsg"></div>
+    <button id="btnPdfMingguan" class="btn-primary">
+      📅 Laporan Mingguan
+    </button>
+
+    <button id="btnPdfBulanan" class="btn-primary">
+      🗓️ Laporan Bulanan
+    </button>
+
+    <button id="btnPdfOpname" class="btn-primary">
+      📦 Laporan Stock Opname
+    </button>
+
   </div>
+
+  <div id="pdfMsg"></div>
+</div>
 
 
   <style is:global>
@@ -207,6 +223,23 @@ import Layout from "../layouts/Layout.astro";
       color: #2e7d32;
       font-weight: 700;
     }
+
+    .pdfGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pdfGrid .btn-primary {
+  margin: 0;
+}
+
+@media (max-width: 420px) {
+  .pdfGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
   </style>
 
 
@@ -740,140 +773,171 @@ import Layout from "../layouts/Layout.astro";
           </p>
         `;
       }
-    }
+    
+// ==========================================================
+// GENERATE PDF
+// ==========================================================
 
+async function generatePdf(reportType) {
 
-    // ==========================================================
-    // GENERATE PDF
-    //
-    // JANGAN DIUBAH DULU.
-    // FOOTER PDF KITA GARAP SETELAH FRONTEND LOCK.
-    // ==========================================================
+  const msgEl =
+    document.getElementById('pdfMsg');
 
-    document
-      .getElementById('btnPdf')
-      .addEventListener(
-        'click',
-        async () => {
+  const tanggal =
+    document.getElementById('startDate').value
+    || fmtDate(new Date());
 
-          const msgEl =
-            document.getElementById(
-              'pdfMsg'
-            );
+  const buttons = [
+    'btnPdfHarian',
+    'btnPdfMingguan',
+    'btnPdfBulanan',
+    'btnPdfOpname'
+  ];
 
-          const btn =
-            document.getElementById(
-              'btnPdf'
-            );
+  buttons.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = true;
+  });
 
+  msgEl.textContent =
+    'Sedang bikin PDF, tunggu sebentar...';
 
-          const tanggal =
-            document.getElementById(
-              'startDate'
-            ).value
-            || fmtDate(
-              new Date()
-            );
+  msgEl.className = '';
 
+  try {
 
-          btn.disabled = true;
+    const res =
+      await fetch(
+        API_URL,
+        {
+          method: 'POST',
 
-          msgEl.textContent =
-            'Sedang bikin PDF, tunggu sebentar...';
+          headers: {
+            'Content-Type':
+              'text/plain;charset=utf-8'
+          },
 
-          msgEl.className = '';
+          body: JSON.stringify({
 
+            action: 'generateLaporan',
 
-          try {
+            data: {
 
-            const res =
-              await fetch(
-                API_URL,
-                {
-                  method: 'POST',
+              tanggal: tanggal,
 
-                  headers: {
-                    'Content-Type':
-                      'text/plain;charset=utf-8'
-                  },
+              tipe: reportType,
 
-                  body: JSON.stringify({
-                    action:
-                      'generateLaporan',
-
-                    data: {
-                      tanggal:
-                        tanggal,
-
-                      petugas:
-                        getPetugas()
-                    }
-                  })
-                }
-              );
-
-
-            const result =
-              await res.json();
-
-
-            if (result.success) {
-
-              msgEl.innerHTML = `
-                PDF berhasil dibuat!
-                <a
-                  href="${result.pdfUrl}"
-                  target="_blank"
-                >
-                  Buka PDF
-                </a>
-              `;
-
-              msgEl.className =
-                'ok';
+              petugas: getPetugas()
 
             }
 
-            else {
-
-              msgEl.textContent =
-                'Gagal: ' +
-                (
-                  result.message
-                  || 'unknown error'
-                );
-
-              msgEl.className =
-                'err';
-
-            }
-
-          }
-
-          catch (err) {
-
-            console.error(
-              'ERROR generateLaporan:',
-              err
-            );
-
-            msgEl.textContent =
-              'Error: ' +
-              err.message;
-
-            msgEl.className =
-              'err';
-
-          }
-
-          finally {
-
-            btn.disabled = false;
-
-          }
-
+          })
         }
       );
+
+
+    const result =
+      await res.json();
+
+
+    if (result.success) {
+
+      msgEl.innerHTML = `
+        PDF berhasil dibuat!
+        <a
+          href="${result.pdfUrl}"
+          target="_blank"
+        >
+          Buka PDF
+        </a>
+      `;
+
+      msgEl.className = 'ok';
+
+    }
+
+    else {
+
+      msgEl.textContent =
+        'Gagal: ' +
+        (
+          result.message
+          || 'unknown error'
+        );
+
+      msgEl.className = 'err';
+
+    }
+
+  }
+
+  catch (err) {
+
+    console.error(
+      'ERROR generatePdf:',
+      err
+    );
+
+    msgEl.textContent =
+      'Error: ' +
+      err.message;
+
+    msgEl.className = 'err';
+
+  }
+
+  finally {
+
+    buttons.forEach(id => {
+
+      const btn =
+        document.getElementById(id);
+
+      if (btn) {
+        btn.disabled = false;
+      }
+
+    });
+
+  }
+
+}
+
+
+// ==========================================================
+// BUTTON LAPORAN
+// ==========================================================
+
+document
+  .getElementById('btnPdfHarian')
+  .addEventListener(
+    'click',
+    () => generatePdf('daily')
+  );
+
+
+document
+  .getElementById('btnPdfMingguan')
+  .addEventListener(
+    'click',
+    () => generatePdf('weekly')
+  );
+
+
+document
+  .getElementById('btnPdfBulanan')
+  .addEventListener(
+    'click',
+    () => generatePdf('monthly')
+  );
+
+
+document
+  .getElementById('btnPdfOpname')
+  .addEventListener(
+    'click',
+    () => generatePdf('opname')
+  );
 
 
     // ==========================================================
