@@ -4,6 +4,10 @@ import Layout from "../layouts/Layout.astro";
 
 <Layout active="opname">
 
+  <!-- =====================================================
+       PETUGAS & PENCARIAN
+       ===================================================== -->
+
   <div class="card">
 
     <div class="petugasBox">
@@ -11,25 +15,29 @@ import Layout from "../layouts/Layout.astro";
       <strong id="petugasName">-</strong>
     </div>
 
-    <label>Cari bahan (opsional)</label>
+    <label for="searchBox">
+      Cari bahan (opsional)
+    </label>
 
     <input
       type="text"
       id="searchBox"
-      placeholder="Ketik buat filter list di bawah..."
+      placeholder="Ketik untuk filter bahan..."
+      autocomplete="off"
     />
 
   </div>
 
 
+  <!-- =====================================================
+       DAFTAR BAHAN
+       ===================================================== -->
+
   <div class="card">
 
     <div class="listHeader">
-
       <span>Bahan</span>
-
       <span>Stok Fisik</span>
-
     </div>
 
     <div id="opnameList">
@@ -39,13 +47,16 @@ import Layout from "../layouts/Layout.astro";
   </div>
 
 
+  <!-- =====================================================
+       SIMPAN
+       ===================================================== -->
+
   <button
     id="btnSubmit"
     class="btn-primary"
   >
     ✅ Simpan Hasil Opname
   </button>
-
 
   <div id="formMsg"></div>
 
@@ -73,6 +84,7 @@ import Layout from "../layouts/Layout.astro";
       border: 1px solid #ddd;
       border-radius: 10px;
       background: #fafafa;
+      box-sizing: border-box;
     }
 
     .listHeader {
@@ -121,12 +133,18 @@ import Layout from "../layouts/Layout.astro";
       border-radius: 8px;
       text-align: center;
       font-size: 0.95rem;
+      box-sizing: border-box;
     }
 
     .opnameInput.changed {
       border-color: #b5651d;
       background: #fdecd2;
       font-weight: 700;
+    }
+
+    .opnameInput.invalid {
+      border-color: #c62828;
+      background: #ffebee;
     }
 
     .btn-primary {
@@ -138,16 +156,19 @@ import Layout from "../layouts/Layout.astro";
       border-radius: 12px;
       font-weight: 600;
       margin-top: 4px;
+      cursor: pointer;
     }
 
     .btn-primary:disabled {
       opacity: 0.6;
+      cursor: not-allowed;
     }
 
     #formMsg {
       font-size: 0.85rem;
       margin-top: 10px;
       text-align: center;
+      min-height: 20px;
     }
 
     #formMsg.ok {
@@ -167,40 +188,40 @@ import Layout from "../layouts/Layout.astro";
       import.meta.env.PUBLIC_API_URL;
 
 
+    // =====================================================
+    // DATA
+    // =====================================================
+
     let allBahan = [];
 
-    // ======================================================
-    // NILAI OPNAME
-    //
-    // Disimpan berdasarkan SKU.
-    //
-    // Jadi search/filter tidak menyebabkan
-    // data bahan lain hilang saat submit.
-    // ======================================================
-
+    /*
+     * Menyimpan hasil input berdasarkan SKU.
+     *
+     * Penting:
+     * Search/filter tidak boleh membuat nilai
+     * yang sudah diedit hilang.
+     */
     const opnameValues = {};
 
 
-    // ======================================================
+    // =====================================================
     // PETUGAS
-    // ======================================================
+    // =====================================================
 
     function getPetugas() {
 
       try {
 
-        const s =
+        const data =
           JSON.parse(
             localStorage.getItem(
               'gudangPetugas'
             ) || 'null'
           );
 
-        return s
-          ? s.nama
-          : '';
+        return data?.nama || '';
 
-      } catch (e) {
+      } catch (err) {
 
         return '';
 
@@ -215,9 +236,9 @@ import Layout from "../layouts/Layout.astro";
         getPetugas() || '-';
 
 
-    // ======================================================
+    // =====================================================
     // RENDER LIST
-    // ======================================================
+    // =====================================================
 
     function renderList(list) {
 
@@ -227,10 +248,20 @@ import Layout from "../layouts/Layout.astro";
         );
 
 
-      if (list.length === 0) {
+      if (!list.length) {
 
         el.innerHTML =
-          '<p style="color:#8a7566;font-size:0.85rem;padding:8px 0;">Gak ada bahan yang cocok.</p>';
+          `
+            <p
+              style="
+                color:#8a7566;
+                font-size:0.85rem;
+                padding:8px 0;
+              "
+            >
+              Gak ada bahan yang cocok.
+            </p>
+          `;
 
         return;
 
@@ -240,13 +271,19 @@ import Layout from "../layouts/Layout.astro";
       el.innerHTML =
         list.map(p => {
 
+          /*
+           * Ambil nilai yang sudah diedit.
+           * Kalau belum pernah diedit,
+           * gunakan stok sistem.
+           */
+
           const value =
             opnameValues[p.sku] !== undefined
               ? opnameValues[p.sku]
               : p.stok;
 
-          return `
 
+          return `
             <div class="opnameRow">
 
               <div class="opnameInfo">
@@ -273,133 +310,173 @@ import Layout from "../layouts/Layout.astro";
                 data-original="${p.stok}"
                 value="${value}"
                 step="0.1"
+                min="0"
+                inputmode="decimal"
               />
 
             </div>
-
           `;
 
         }).join('');
 
 
-      // ====================================================
+      // ===================================================
       // EVENT INPUT
-      // ====================================================
+      // ===================================================
 
       el
-        .querySelectorAll(
-          '.opnameInput'
-        )
-        .forEach(inp => {
+        .querySelectorAll('.opnameInput')
+        .forEach(input => {
 
-          inp.addEventListener(
+          updateInputState(input);
+
+
+          input.addEventListener(
             'input',
             () => {
 
               const sku =
-                inp.dataset.sku;
+                input.dataset.sku;
 
-              const original =
-                parseFloat(
-                  inp.dataset.original
-                );
+              /*
+               * Simpan sebagai STRING terlebih dahulu.
+               *
+               * Jangan langsung Number(),
+               * karena input kosong harus dianggap
+               * kosong / invalid, bukan angka 0.
+               */
 
-              const current =
-                parseFloat(
-                  inp.value
-                );
+              opnameValues[sku] =
+                input.value;
 
-
-              // Simpan nilai terbaru
-              // berdasarkan SKU.
-
-              if (!isNaN(current)) {
-
-                opnameValues[sku] =
-                  current;
-
-              }
-
-
-              if (
-                !isNaN(current) &&
-                current !== original
-              ) {
-
-                inp.classList.add(
-                  'changed'
-                );
-
-              } else {
-
-                inp.classList.remove(
-                  'changed'
-                );
-
-              }
+              updateInputState(input);
 
             }
           );
 
         });
 
+    }
 
-      // ====================================================
-      // Tandai input yang sudah berubah
-      // setelah render/filter.
-      // ====================================================
 
-      el
-        .querySelectorAll(
-          '.opnameInput'
-        )
-        .forEach(inp => {
+    // =====================================================
+    // STATUS INPUT
+    // =====================================================
 
-          const original =
-            parseFloat(
-              inp.dataset.original
-            );
+    function updateInputState(input) {
 
-          const current =
-            parseFloat(
-              inp.value
-            );
+      const original =
+        parseFloat(
+          input.dataset.original
+        );
 
-          if (
-            !isNaN(current) &&
-            current !== original
-          ) {
+      const raw =
+        input.value.trim();
 
-            inp.classList.add(
-              'changed'
-            );
+      input.classList.remove(
+        'changed',
+        'invalid'
+      );
 
-          }
 
-        });
+      // Kosong = invalid
+
+      if (raw === '') {
+
+        input.classList.add(
+          'invalid'
+        );
+
+        return;
+
+      }
+
+
+      const current =
+        parseFloat(raw);
+
+
+      // Bukan angka = invalid
+
+      if (isNaN(current)) {
+
+        input.classList.add(
+          'invalid'
+        );
+
+        return;
+
+      }
+
+
+      // Nilai berubah dari sistem
+
+      if (current !== original) {
+
+        input.classList.add(
+          'changed'
+        );
+
+      }
 
     }
 
 
-    // ======================================================
-    // LOAD MASTER
-    // ======================================================
+    // =====================================================
+    // LOAD MASTER BAHAN
+    // =====================================================
 
     async function loadBahan() {
 
+      const el =
+        document.getElementById(
+          'opnameList'
+        );
+
+
       try {
+
+        el.textContent =
+          'Memuat...';
+
 
         const res =
           await fetch(
             `${API_URL}?action=getMasterData`
           );
 
-        allBahan =
+
+        if (!res.ok) {
+
+          throw new Error(
+            'HTTP ' + res.status
+          );
+
+        }
+
+
+        const data =
           await res.json();
 
 
-        // Inisialisasi nilai opname
-        // menggunakan stok sistem.
+        if (!Array.isArray(data)) {
+
+          throw new Error(
+            'Format data tidak valid'
+          );
+
+        }
+
+
+        allBahan = data;
+
+
+        /*
+         * Inisialisasi nilai opname.
+         *
+         * Hanya dilakukan jika SKU belum
+         * memiliki nilai yang diedit.
+         */
 
         allBahan.forEach(p => {
 
@@ -419,50 +496,53 @@ import Layout from "../layouts/Layout.astro";
           allBahan
         );
 
+
       } catch (err) {
 
-        document
-          .getElementById(
-            'opnameList'
-          )
-          .innerHTML =
-            '<p style="color:#c62828;">Gagal memuat data.</p>';
+        console.error(
+          'loadBahan:',
+          err
+        );
+
+
+        el.innerHTML =
+          `
+            <p style="color:#c62828;">
+              Gagal memuat data bahan.
+            </p>
+          `;
 
       }
 
     }
 
 
-    // ======================================================
+    // =====================================================
     // SEARCH
-    // ======================================================
+    // =====================================================
 
     document
-      .getElementById(
-        'searchBox'
-      )
+      .getElementById('searchBox')
       .addEventListener(
         'input',
-        e => {
+        event => {
 
           const q =
-            e.target.value
+            event.target.value
               .toLowerCase()
               .trim();
 
 
           const filtered =
-            q === ""
-
+            q === ''
               ? allBahan
-
               : allBahan.filter(
                   p =>
-                    p.nama
+                    String(p.nama)
                       .toLowerCase()
                       .includes(q) ||
 
-                    p.sku
+                    String(p.sku)
                       .toLowerCase()
                       .includes(q)
                 );
@@ -476,14 +556,22 @@ import Layout from "../layouts/Layout.astro";
       );
 
 
-    // ======================================================
+    // =====================================================
     // SIMPAN OPNAME
-    // ======================================================
+    //
+    // SEMUA BAHAN dikirim.
+    //
+    // Tidak peduli:
+    // - selisih 0
+    // - selisih +
+    // - selisih -
+    //
+    // Backend akan mencatat semuanya sebagai
+    // transaksi tipe "Opname".
+    // =====================================================
 
     document
-      .getElementById(
-        'btnSubmit'
-      )
+      .getElementById('btnSubmit')
       .addEventListener(
         'click',
         async () => {
@@ -498,18 +586,19 @@ import Layout from "../layouts/Layout.astro";
               'btnSubmit'
             );
 
+
           const petugas =
             getPetugas();
 
 
-          // ------------------------------------------------
+          // -------------------------------------------------
           // VALIDASI PETUGAS
-          // ------------------------------------------------
+          // -------------------------------------------------
 
           if (!petugas) {
 
             msgEl.textContent =
-              'Pilih petugas dulu';
+              'Pilih petugas dulu.';
 
             msgEl.className =
               'err';
@@ -519,43 +608,68 @@ import Layout from "../layouts/Layout.astro";
           }
 
 
-          // ------------------------------------------------
-          // SEMUA BAHAN DIKIRIM
-          //
-          // Bukan cuma yang berubah.
-          // ------------------------------------------------
+          // -------------------------------------------------
+          // VALIDASI MASTER
+          // -------------------------------------------------
+
+          if (!allBahan.length) {
+
+            msgEl.textContent =
+              'Tidak ada data bahan untuk di-opname.';
+
+            msgEl.className =
+              'err';
+
+            return;
+
+          }
+
+
+          // -------------------------------------------------
+          // SUSUN SEMUA BAHAN
+          // -------------------------------------------------
 
           const items =
-            allBahan.map(p => ({
+            allBahan.map(p => {
 
-              sku:
-                p.sku,
-
-              stokFisik:
-                Number(
-                  opnameValues[p.sku]
-                )
-
-            }));
+              const raw =
+                opnameValues[p.sku];
 
 
-          // ------------------------------------------------
-          // VALIDASI
-          // ------------------------------------------------
+              return {
+
+                sku:
+                  p.sku,
+
+                stokFisik:
+                  raw === undefined ||
+                  raw === ''
+                    ? NaN
+                    : parseFloat(raw)
+
+              };
+
+            });
+
+
+          // -------------------------------------------------
+          // VALIDASI NILAI FISIK
+          // -------------------------------------------------
 
           const invalid =
-            items.some(
+            items.find(
               item =>
                 isNaN(
                   item.stokFisik
-                )
+                ) ||
+                item.stokFisik < 0
             );
 
 
           if (invalid) {
 
             msgEl.textContent =
-              'Ada stok fisik yang belum diisi dengan benar.';
+              `Ada stok fisik yang belum valid (${invalid.sku}).`;
 
             msgEl.className =
               'err';
@@ -565,20 +679,30 @@ import Layout from "../layouts/Layout.astro";
           }
 
 
-          // ------------------------------------------------
+          // -------------------------------------------------
           // KONFIRMASI
-          // ------------------------------------------------
+          // -------------------------------------------------
 
           const konfirmasi =
             confirm(
-              `Simpan hasil opname untuk ${items.length} bahan?`
+              `Simpan hasil opname untuk ${items.length} bahan?\n\n` +
+              `Semua bahan akan dicatat, termasuk yang selisihnya 0.`
             );
 
 
-          if (!konfirmasi) return;
+          if (!konfirmasi) {
+
+            return;
+
+          }
 
 
-          btn.disabled = true;
+          // -------------------------------------------------
+          // LOCK BUTTON
+          // -------------------------------------------------
+
+          btn.disabled =
+            true;
 
           msgEl.textContent =
             'Menyimpan hasil opname...';
@@ -587,9 +711,9 @@ import Layout from "../layouts/Layout.astro";
             '';
 
 
-          // ------------------------------------------------
+          // -------------------------------------------------
           // KIRIM KE SERVER
-          // ------------------------------------------------
+          // -------------------------------------------------
 
           try {
 
@@ -624,9 +748,22 @@ import Layout from "../layouts/Layout.astro";
               );
 
 
+            if (!res.ok) {
+
+              throw new Error(
+                'HTTP ' + res.status
+              );
+
+            }
+
+
             const result =
               await res.json();
 
+
+            // ------------------------------------------------
+            // BERHASIL
+            // ------------------------------------------------
 
             if (result.success) {
 
@@ -637,7 +774,10 @@ import Layout from "../layouts/Layout.astro";
                 'ok';
 
 
-              // Reset search
+              /*
+               * Setelah opname selesai,
+               * reload stok sistem terbaru.
+               */
 
               document
                 .getElementById(
@@ -646,8 +786,21 @@ import Layout from "../layouts/Layout.astro";
                 .value = '';
 
 
-              // Reload master karena
-              // stok sistem mungkin berubah.
+              /*
+               * Reset nilai opname.
+               *
+               * Karena opname sudah disimpan,
+               * nilai fisik sekarang menjadi
+               * stok sistem baru.
+               */
+
+              Object.keys(
+                opnameValues
+              ).forEach(
+                key =>
+                  delete opnameValues[key]
+              );
+
 
               await loadBahan();
 
@@ -656,7 +809,10 @@ import Layout from "../layouts/Layout.astro";
 
               msgEl.textContent =
                 'Gagal: ' +
-                result.message;
+                (
+                  result.message ||
+                  'Opname gagal disimpan.'
+                );
 
               msgEl.className =
                 'err';
@@ -666,11 +822,18 @@ import Layout from "../layouts/Layout.astro";
 
           } catch (err) {
 
+            console.error(
+              'saveOpname:',
+              err
+            );
+
+
             msgEl.textContent =
-              'Gagal terhubung ke server';
+              'Gagal terhubung ke server.';
 
             msgEl.className =
               'err';
+
 
           } finally {
 
@@ -683,9 +846,9 @@ import Layout from "../layouts/Layout.astro";
       );
 
 
-    // ======================================================
+    // =====================================================
     // START
-    // ======================================================
+    // =====================================================
 
     loadBahan();
 
