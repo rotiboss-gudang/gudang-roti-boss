@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roti-boss-v1';
+const CACHE_NAME = 'roti-boss-v2';
 const ASSETS = [
   '/',
   '/manifest.json',
@@ -9,33 +9,53 @@ const ASSETS = [
   '/icons/icon-512x512.png'
 ];
 
-// Install
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
   self.skipWaiting();
 });
 
-// Activate
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
-    })
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      )
+    )
   );
   self.clients.claim();
 });
 
-// Fetch (cache-first untuk static, network-first untuk page)
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
+  const request = event.request;
+
+  // API selalu network. Jangan pernah dilayani cache Service Worker.
+  if (new URL(request.url).pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Halaman Astro: network-first agar deploy terbaru selalu dipakai.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then(cached => cached || caches.match('/'))
+        )
+    );
+    return;
+  }
+
+  // Asset statis: cache-first.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request);
-    })
+    caches.match(request).then(cached => cached || fetch(request))
   );
 });
