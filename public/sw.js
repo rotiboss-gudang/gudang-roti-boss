@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roti-boss-v2';
+const CACHE_NAME = 'roti-boss-v3-d1-live';
 const ASSETS = [
   '/',
   '/manifest.json',
@@ -31,17 +31,18 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const request = event.request;
+  const url = new URL(request.url);
 
-  // API selalu network. Jangan pernah dilayani cache Service Worker.
-  if (new URL(request.url).pathname.startsWith('/api/')) {
-    event.respondWith(fetch(request));
+  // Semua API, termasuk API Worker eksternal, WAJIB network-only.
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
     return;
   }
 
   // Halaman Astro: network-first agar deploy terbaru selalu dipakai.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-store' })
         .then(response => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
