@@ -13,8 +13,8 @@ import Layout from "../layouts/Layout.astro";
 
   <div class="card">
     <div class="petugasBox">👤 Petugas: <strong id="petugasName">-</strong></div>
-
     <label>Bahan Baku</label>
+
     <div class="searchWrap">
       <input type="text" id="fBahanSearch" placeholder="Ketik nama, atau tap buat lihat semua..." autocomplete="off" />
       <div id="fBahanResults" class="searchResults hidden"></div>
@@ -25,8 +25,8 @@ import Layout from "../layouts/Layout.astro";
     <div id="scanMsg" class="scanMsg"></div>
     <div id="stokInfo" class="stokInfo"></div>
 
-    <label id="expLabel" style="display:block;">Tanggal Expired</label>
-    <input type="date" id="fExp" style="display:block;" />
+    <label id="expLabel">Tanggal Expired</label>
+    <input type="date" id="fExp" />
 
     <label>Jumlah</label>
     <div class="qtyRow">
@@ -36,7 +36,7 @@ import Layout from "../layouts/Layout.astro";
     </div>
 
     <label>Keterangan (opsional)</label>
-    <input type="text" id="fKeterangan" placeholder="misal: retur supplier, produksi harian" />
+    <input type="text" id="fKeterangan" placeholder="misal: retur supplier, keluar manual" />
 
     <div id="formMsg"></div>
     <button type="button" id="btnSubmit" class="btn-primary">Simpan Transaksi</button>
@@ -44,30 +44,31 @@ import Layout from "../layouts/Layout.astro";
 
   <style is:global>
     .tipeRow{display:flex;gap:8px}.tipeBtn{flex:1;padding:12px 4px;border:2px solid #eee;background:#fff;border-radius:12px;font-size:.85rem;font-weight:600;color:#8a7566}.tipeBtn.active{border-color:#5c3d2e;color:#5c3d2e;background:#f2ece4}
-    .petugasBox{background:#f9f5f0;border-radius:10px;padding:10px 12px;font-size:.9rem}label{display:block;font-size:.8rem;color:#8a7566;margin:12px 0 4px}
+    .petugasBox{background:#f9f5f0;border-radius:10px;padding:10px 12px;font-size:.9rem;margin-bottom:4px}label{display:block;font-size:.8rem;color:#8a7566;margin:12px 0 4px}
     input[type=text],input[type=number],input[type=date]{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:10px;background:#fafafa;box-sizing:border-box}
     .searchWrap{position:relative}.searchResults{position:relative;margin-top:4px;max-height:240px;overflow-y:auto;border:1px solid #ddd;border-radius:10px;background:#fff;z-index:20}.hidden{display:none!important}
-    .searchItem{padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer}.searchItem:last-child{border-bottom:none}.searchItem .nama{font-weight:600;color:#4a2f22}.searchItem .sub{font-size:.75rem;color:#8a7566;margin-top:2px}.searchItem:active{background:#f2ece4}.searchEmpty{padding:12px;text-align:center;color:#8a7566;font-size:.82rem}
-    .btn-scan{width:100%;padding:12px;border:2px dashed #5c3d2e;background:#fff;color:#5c3d2e;border-radius:12px;font-weight:600;margin-top:8px}#reader{width:100%!important;border-radius:16px;overflow:hidden;margin-top:10px}#reader video{border-radius:16px}.scanMsg,.stokInfo{font-size:.8rem;margin-top:6px;color:#8a7566}
-    .qtyRow{display:flex;align-items:center;gap:10px}.qtyRow input{text-align:center;flex:1}.qtyBtn{width:44px;height:44px;border-radius:50%;border:0;background:#f2ece4;color:#5c3d2e;font-size:1.3rem;font-weight:700}
-    .btn-primary{width:100%;padding:14px;background:#5c3d2e;color:#fff;border:0;border-radius:12px;font-weight:600;margin-top:12px}.btn-primary:disabled{opacity:.6}#formMsg{font-size:.85rem;margin-top:10px}#formMsg.ok{color:#2e7d32}#formMsg.err{color:#c62828}
+    .searchItem{padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:.88rem;cursor:pointer}.searchItem:last-child{border-bottom:none}.searchItem .nama{font-weight:600;color:#4a2f22}.searchItem .sub{font-size:.75rem;color:#8a7566;margin-top:2px}.searchItem:active{background:#f2ece4}.searchEmpty{padding:12px;font-size:.82rem;color:#8a7566;text-align:center}
+    .btn-scan{width:100%;padding:12px;border:2px dashed #5c3d2e;background:#fff;color:#5c3d2e;border-radius:12px;font-weight:600;margin-top:8px}#reader{width:100%!important;border-radius:16px;overflow:hidden;margin-top:10px}#reader video{border-radius:16px}.scanMsg{font-size:.8rem;margin-top:6px}.stokInfo{font-size:.8rem;color:#8a7566;margin-top:8px}
+    .qtyRow{display:flex;align-items:center;gap:10px}.qtyRow input{text-align:center;flex:1}.qtyBtn{width:44px;height:44px;border-radius:50%;border:none;background:#f2ece4;color:#5c3d2e;font-size:1.3rem;font-weight:700}
+    .btn-primary{width:100%;padding:14px;background:#5c3d2e;color:#fff;border:none;border-radius:12px;font-weight:600;margin-top:12px}.btn-primary:disabled{opacity:.6}#formMsg{font-size:.85rem;margin-top:10px}#formMsg.ok{color:#2e7d32}#formMsg.err{color:#c62828}
   </style>
 
   <script src="https://unpkg.com/html5-qrcode" is:inline></script>
+
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL;
     let currentTipe = "Masuk";
     let allBahan = [];
     let selectedSku = "";
-    let scanner = null;
+    let html5QrCode = null;
     let scanning = false;
-    let requestSeq = 0;
 
     const $ = id => document.getElementById(id);
 
     function getPetugas() {
       try {
-        return JSON.parse(localStorage.getItem("gudangPetugas") || "null")?.nama || "";
+        const data = JSON.parse(localStorage.getItem("gudangPetugas") || "null");
+        return data?.nama || "";
       } catch {
         return "";
       }
@@ -78,7 +79,7 @@ import Layout from "../layouts/Layout.astro";
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
-        .replace(/\"/g, "&quot;")
+        .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
     }
 
@@ -88,13 +89,11 @@ import Layout from "../layouts/Layout.astro";
     }
 
     // ========================================================
-    // MASTER BAHAN — SELALU BACA LANGSUNG DARI D1
+    // MASTER BAHAN — LANGSUNG DARI D1
     // ========================================================
     async function loadBahan() {
-      const seq = ++requestSeq;
-
       try {
-        const res = await fetch(`${API_URL}/api/bahan?_=${Date.now()}`, {
+        const response = await fetch(`${API_URL}/api/bahan?_=${Date.now()}`, {
           method: "GET",
           cache: "no-store",
           headers: {
@@ -103,86 +102,82 @@ import Layout from "../layouts/Layout.astro";
           }
         });
 
-        const result = await res.json();
+        const result = await response.json();
 
-        if (!res.ok || !result.success || !Array.isArray(result.data)) {
-          throw new Error(result.message || `HTTP ${res.status}`);
+        if (!response.ok || !result.success || !Array.isArray(result.data)) {
+          throw new Error(result.message || `HTTP ${response.status}`);
         }
 
-        // Abaikan response lama kalau ada request yang datang bersamaan.
-        if (seq !== requestSeq) return false;
-
         allBahan = result.data
-          .map(p => ({
-            sku: String(p.sku || "").trim(),
-            nama: String(p.nama || "").trim(),
-            kategori: String(p.kategori || "").trim(),
-            stok: Number(p.stok) || 0,
-            satuan: String(p.satuan || "").trim(),
-            minStok: Number(p.minStok) || 0,
-            expired: p.expired || null
+          .map(item => ({
+            sku: String(item.sku || "").trim(),
+            nama: String(item.nama || "").trim(),
+            kategori: String(item.kategori || "").trim(),
+            stok: Number(item.stok) || 0,
+            satuan: String(item.satuan || "").trim(),
+            minStok: Number(item.minStok) || 0,
+            expired: item.expired || null
           }))
-          .filter(p => p.sku && p.nama);
+          .filter(item => item.sku && item.nama);
 
-        console.log("INPUT /api/bahan D1:", allBahan);
+        console.log("INPUT — MASTER D1:", allBahan);
         updateStokInfo();
         return true;
-      } catch (err) {
-        console.error("Gagal load bahan:", err);
+      } catch (error) {
+        console.error("Gagal mengambil master bahan:", error);
+        allBahan = [];
         return false;
       }
     }
 
     function renderResults() {
-      const q = $("fBahanSearch").value.trim().toLowerCase();
-      const list = q
-        ? allBahan.filter(p =>
-            p.nama.toLowerCase().includes(q) ||
-            p.sku.toLowerCase().includes(q)
+      const query = $("fBahanSearch").value.trim().toLowerCase();
+      const list = query
+        ? allBahan.filter(item =>
+            item.nama.toLowerCase().includes(query) ||
+            item.sku.toLowerCase().includes(query)
           )
         : allBahan;
 
-      const el = $("fBahanResults");
+      const results = $("fBahanResults");
 
       if (!list.length) {
-        el.innerHTML = `<div class="searchEmpty">Gak ada bahan yang cocok.</div>`;
+        results.innerHTML = '<div class="searchEmpty">Gak ada bahan yang cocok.</div>';
       } else {
-        el.innerHTML = list.map(p => `
-          <div class="searchItem" data-sku="${escapeHtml(p.sku)}">
-            <div class="nama">${escapeHtml(p.nama)}</div>
-            <div class="sub">${escapeHtml(p.sku)} | Stok: ${p.stok} ${escapeHtml(p.satuan)}</div>
+        results.innerHTML = list.map(item => `
+          <div class="searchItem" data-sku="${escapeHtml(item.sku)}">
+            <div class="nama">${escapeHtml(item.nama)}</div>
+            <div class="sub">${escapeHtml(item.sku)} | Stok: ${item.stok} ${escapeHtml(item.satuan)}</div>
           </div>
         `).join("");
 
-        el.querySelectorAll(".searchItem").forEach(item => {
-          item.addEventListener("click", () => selectBahan(item.dataset.sku));
+        results.querySelectorAll(".searchItem").forEach(element => {
+          element.addEventListener("click", () => selectBahan(element.dataset.sku));
         });
       }
 
-      el.classList.remove("hidden");
+      results.classList.remove("hidden");
     }
 
-    async function openBahanDropdown() {
-      // Ini sengaja fetch ulang. Jadi bahan baru yang baru ditambahkan
-      // tidak bergantung pada array lama di browser.
+    async function openBahanList() {
       await loadBahan();
       renderResults();
     }
 
     function selectBahan(sku) {
-      const p = allBahan.find(x => x.sku === sku);
-      if (!p) return;
+      const item = allBahan.find(bahan => bahan.sku === sku);
+      if (!item) return;
 
-      selectedSku = p.sku;
-      $("fBahanSearch").value = p.nama;
+      selectedSku = item.sku;
+      $("fBahanSearch").value = item.nama;
       $("fBahanResults").classList.add("hidden");
       updateStokInfo();
     }
 
     function updateStokInfo() {
-      const p = allBahan.find(x => x.sku === selectedSku);
-      $("stokInfo").textContent = p
-        ? `Stok saat ini: ${p.stok} ${p.satuan} (Min: ${p.minStok})`
+      const item = allBahan.find(bahan => bahan.sku === selectedSku);
+      $("stokInfo").textContent = item
+        ? `Stok saat ini: ${item.stok} ${item.satuan} (Min: ${item.minStok})`
         : "";
     }
 
@@ -196,46 +191,34 @@ import Layout from "../layouts/Layout.astro";
     // ========================================================
     function setTipe(tipe) {
       currentTipe = tipe;
-
-      document.querySelectorAll(".tipeBtn").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.tipe === tipe);
+      document.querySelectorAll(".tipeBtn").forEach(button => {
+        button.classList.toggle("active", button.dataset.tipe === tipe);
       });
 
-      const isMasuk = tipe === "Masuk";
-      $("expLabel").style.display = isMasuk ? "block" : "none";
-      $("fExp").style.display = isMasuk ? "block" : "none";
-
-      if (!isMasuk) $("fExp").value = "";
+      const masuk = tipe === "Masuk";
+      $("expLabel").style.display = masuk ? "block" : "none";
+      $("fExp").style.display = masuk ? "block" : "none";
+      if (!masuk) $("fExp").value = "";
     }
 
-    document.querySelectorAll(".tipeBtn").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        setTipe(btn.dataset.tipe);
-        // Tidak perlu menunggu user membuka dropdown untuk refresh master.
-        await loadBahan();
-      });
+    document.querySelectorAll(".tipeBtn").forEach(button => {
+      button.addEventListener("click", () => setTipe(button.dataset.tipe));
     });
 
     // ========================================================
     // SEARCH / DROPDOWN
     // ========================================================
-    $("fBahanSearch").addEventListener("focus", openBahanDropdown);
-    $("fBahanSearch").addEventListener("click", openBahanDropdown);
+    $("fBahanSearch").addEventListener("focus", openBahanList);
+    $("fBahanSearch").addEventListener("click", openBahanList);
 
-    $("fBahanSearch").addEventListener("input", async () => {
+    $("fBahanSearch").addEventListener("input", () => {
       selectedSku = "";
       updateStokInfo();
-
-      // Tampilkan data yang sudah ada dulu supaya responsif.
-      renderResults();
-
-      // Setelah itu sinkronkan lagi dengan D1.
-      await loadBahan();
       renderResults();
     });
 
-    document.addEventListener("click", e => {
-      if (!e.target.closest(".searchWrap")) {
+    document.addEventListener("click", event => {
+      if (!event.target.closest(".searchWrap")) {
         $("fBahanResults").classList.add("hidden");
       }
     });
@@ -255,11 +238,10 @@ import Layout from "../layouts/Layout.astro";
     // BARCODE
     // ========================================================
     async function stopScanner() {
-      if (scanner) {
-        try { await scanner.stop(); } catch {}
-        try { await scanner.clear(); } catch {}
+      if (html5QrCode) {
+        try { await html5QrCode.stop(); } catch {}
+        try { await html5QrCode.clear(); } catch {}
       }
-
       $("reader").classList.add("hidden");
       $("btnScan").textContent = "📷 Scan Barcode";
       scanning = false;
@@ -272,29 +254,29 @@ import Layout from "../layouts/Layout.astro";
       }
 
       await loadBahan();
-
       $("reader").classList.remove("hidden");
       $("btnScan").textContent = "⏹️ Stop Scan";
       $("scanMsg").textContent = "";
 
-      scanner = new Html5Qrcode("reader");
+      if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
       try {
-        await scanner.start(
+        await html5QrCode.start(
           { facingMode: "environment" },
           { fps: 10, qrbox: 220 },
           decodedText => {
             const code = decodedText.trim().toLowerCase();
-            const match = allBahan.find(p => p.sku.toLowerCase() === code);
+            const item = allBahan.find(bahan => bahan.sku.toLowerCase() === code);
 
-            if (!match) {
+            if (!item) {
+              $("scanMsg").style.color = "#c62828";
               $("scanMsg").textContent = `Barcode "${decodedText}" tidak ditemukan di daftar bahan.`;
               return;
             }
 
-            selectBahan(match.sku);
+            selectBahan(item.sku);
             $("scanMsg").style.color = "#2e7d32";
-            $("scanMsg").textContent = `Ketemu: ${match.nama}`;
+            $("scanMsg").textContent = `Ketemu: ${item.nama}`;
             stopScanner();
           },
           () => {}
@@ -303,8 +285,8 @@ import Layout from "../layouts/Layout.astro";
         scanning = true;
         $("scanMsg").style.color = "#8a7566";
         $("scanMsg").textContent = "Kamera aktif, arahkan ke barcode...";
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
         $("scanMsg").style.color = "#c62828";
         $("scanMsg").textContent = "Gagal akses kamera";
         await stopScanner();
@@ -315,38 +297,38 @@ import Layout from "../layouts/Layout.astro";
     // SIMPAN TRANSAKSI
     // ========================================================
     $("btnSubmit").addEventListener("click", async () => {
-      const btn = $("btnSubmit");
-      const user = getPetugas();
-      const p = allBahan.find(x => x.sku === selectedSku);
+      const button = $("btnSubmit");
+      const petugas = getPetugas();
+      const item = allBahan.find(bahan => bahan.sku === selectedSku);
       const qty = Number($("fQty").value);
 
-      if (!user) return showMessage("Sesi login gak valid, coba login ulang", "err");
-      if (!p) return showMessage("Pilih bahan dulu", "err");
+      if (!petugas) return showMessage("Sesi login gak valid, coba login ulang", "err");
+      if (!item) return showMessage("Pilih bahan dulu", "err");
       if (!Number.isFinite(qty) || qty <= 0) return showMessage("Jumlah harus lebih dari 0", "err");
 
       const payload = {
         tipe: currentTipe,
-        sku: p.sku,
+        sku: item.sku,
         qty,
-        satuan: p.satuan,
+        satuan: item.satuan,
         keterangan: $("fKeterangan").value.trim(),
-        petugas: user,
+        petugas,
         exp: currentTipe === "Masuk" ? $("fExp").value : ""
       };
 
-      btn.disabled = true;
+      button.disabled = true;
       showMessage("Menyimpan...");
 
       try {
-        const res = await fetch(`${API_URL}/api/transaksi`, {
+        const response = await fetch(`${API_URL}/api/transaksi`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
 
-        const result = await res.json();
+        const result = await response.json();
 
-        if (!res.ok || !result.success) {
+        if (!response.ok || !result.success) {
           throw new Error(result.message || "Transaksi gagal");
         }
 
@@ -359,17 +341,14 @@ import Layout from "../layouts/Layout.astro";
         selectedSku = "";
 
         await loadBahan();
-      } catch (err) {
-        console.error(err);
-        showMessage(err.message || "Gagal terhubung ke server", "err");
+      } catch (error) {
+        console.error(error);
+        showMessage(error.message || "Gagal terhubung ke server", "err");
       } finally {
-        btn.disabled = false;
+        button.disabled = false;
       }
     });
 
-    // ========================================================
-    // START
-    // ========================================================
     setTipe("Masuk");
     loadBahan();
   </script>
