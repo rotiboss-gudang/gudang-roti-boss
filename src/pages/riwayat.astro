@@ -1,199 +1,605 @@
 ---
+
 import Layout from "../layouts/Layout.astro";
----
-<Layout active="riwayat">
-  <div class="card">
-    <div class="filterRow">
-      <button class="filterBtn active" data-tipe="all">Semua</button>
-      <button class="filterBtn" data-tipe="Masuk">Masuk</button>
-      <button class="filterBtn" data-tipe="Keluar">Keluar</button>
-      <button class="filterBtn" data-tipe="Rusak-Expired">Rusak/Exp</button>
-    </div>
 
-    <div class="dateRow">
-      <div>
-        <label>Dari tanggal</label>
-        <input type="date" id="startDate" />
-      </div>
+<Layout active="riwayat">  <div class="card"><div class="filterRow">
+  <button class="filterBtn active" data-tipe="all">Semua</button>
+  <button class="filterBtn" data-tipe="Masuk">Masuk</button>
+  <button class="filterBtn" data-tipe="Keluar">Keluar</button>
+  <button class="filterBtn" data-tipe="Rusak-Expired">Rusak/Exp</button>
+</div>
 
-      <div>
-        <label>Sampai tanggal</label>
-        <input type="date" id="endDate" />
-      </div>
-    </div>
-
-    <button id="btnResetDate" class="btn-reset">
-      ✕ Hapus filter tanggal
-    </button>
+<div class="dateRow">
+  <div>
+    <label for="startDate">Dari tanggal</label>
+    <input type="date" id="startDate">
   </div>
 
-  <div class="card">
-    <h2 style="margin-bottom:12px;">📝 Riwayat Transaksi</h2>
-    <div id="riwayatList">Memuat...</div>
+  <div>
+    <label for="endDate">Sampai tanggal</label>
+    <input type="date" id="endDate">
   </div>
+</div>
 
-  <style is:global>
-    .filterRow { display: flex; gap: 8px; flex-wrap: wrap; }
-    .filterBtn { flex: 1; min-width: 70px; padding: 10px 4px; border: 2px solid #eee; background: #fff; border-radius: 10px; font-size: 0.8rem; font-weight: 600; color: #8a7566; }
-    .filterBtn.active { border-color: #5c3d2e; color: #5c3d2e; background: #f2ece4; }
-    .dateRow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-    .dateRow label { display: block; font-size: 0.72rem; color: #8a7566; margin-bottom: 4px; }
-    .dateRow input[type="date"] { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.85rem; }
-    .btn-reset { width: 100%; margin-top: 10px; padding: 8px; border: 1px solid #ccc; background: #fff; color: #8a7566; border-radius: 8px; font-size: 0.78rem; }
-    .trxItem { padding: 12px 0; border-bottom: 1px solid #eee; }
-    .trxItem:last-child { border-bottom: none; }
-    .trxItem.cancelled { opacity: 0.45; }
-    .trxTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-    .trxNama { font-weight: 600; font-size: 0.92rem; }
-    .trxMeta { font-size: 0.75rem; color: #8a7566; margin-top: 2px; }
-    .trxStok { font-size: 0.8rem; color: #4a2f22; margin-top: 4px; }
-    .trxTag { font-size: 0.7rem; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
-    .trxTag.Masuk { background: #e3f2e3; color: #2e7d32; }
-    .trxTag.Keluar { background: #fdecd2; color: #b5651d; }
-    .trxTag.Rusak-Expired { background: #fbdcdc; color: #b52a2a; }
-    .btnUndo { margin-top: 8px; font-size: 0.75rem; padding: 6px 12px; border: 1px solid #c62828; color: #c62828; background: #fff; border-radius: 8px; }
-    .btnUndo:disabled { opacity: 0.4; }
-    .cancelledTag { font-size: 0.7rem; color: #c62828; font-weight: 600; margin-top: 6px; }
-  </style>
+<button id="btnResetDate" class="btn-reset" type="button">
+  ✕ Hapus filter tanggal
+</button>
 
-  <script>
+  </div>  <div class="card"><h2 style="margin-bottom:12px;">
+  📝 Riwayat Transaksi
+</h2>
+
+<div id="riwayatList">
+  Memuat...
+</div>
+
+  </div>  <style is:global>
+
+    .filterRow {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .filterBtn {
+      flex:1;
+      min-width:70px;
+      padding:10px 4px;
+      border:2px solid #eee;
+      background:#fff;
+      border-radius:10px;
+      font-size:.8rem;
+      font-weight:600;
+      color:#8a7566;
+      cursor:pointer;
+    }
+
+    .filterBtn.active {
+      border-color:#5c3d2e;
+      color:#5c3d2e;
+      background:#f2ece4;
+    }
+
+    .dateRow {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .dateRow label {
+      display:block;
+      font-size:.72rem;
+      color:#8a7566;
+      margin-bottom:4px;
+    }
+
+    .dateRow input {
+      width:100%;
+      box-sizing:border-box;
+      padding:8px 10px;
+      border:1px solid #ddd;
+      border-radius:8px;
+      background:#fafafa;
+      font-size:.85rem;
+    }
+
+    .btn-reset {
+      width:100%;
+      margin-top:10px;
+      padding:8px;
+      border:1px solid #ccc;
+      background:#fff;
+      color:#8a7566;
+      border-radius:8px;
+      font-size:.78rem;
+      cursor:pointer;
+    }
+
+    .trxItem {
+      padding:12px 0;
+      border-bottom:1px solid #eee;
+    }
+
+    .trxItem:last-child {
+      border-bottom:none;
+    }
+
+    .trxItem.cancelled {
+      opacity:.45;
+    }
+
+    .trxTop {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:8px;
+    }
+
+    .trxNama {
+      font-weight:600;
+      font-size:.92rem;
+    }
+
+    .trxMeta {
+      font-size:.75rem;
+      color:#8a7566;
+      margin-top:2px;
+    }
+
+    .trxStok {
+      font-size:.8rem;
+      color:#4a2f22;
+      margin-top:5px;
+    }
+
+    .trxTag {
+      font-size:.7rem;
+      padding:3px 9px;
+      border-radius:20px;
+      white-space:nowrap;
+      font-weight:600;
+    }
+
+    .trxTag.Masuk {
+      background:#e3f2e3;
+      color:#2e7d32;
+    }
+
+    .trxTag.Keluar {
+      background:#fdecd2;
+      color:#b5651d;
+    }
+
+    .trxTag.Rusak-Expired {
+      background:#fbdcdc;
+      color:#b52a2a;
+    }
+
+    .btnUndo {
+      margin-top:8px;
+      font-size:.75rem;
+      padding:6px 12px;
+      border:1px solid #c62828;
+      color:#c62828;
+      background:#fff;
+      border-radius:8px;
+      cursor:pointer;
+    }
+
+    .btnUndo:disabled {
+      opacity:.4;
+      cursor:wait;
+    }
+
+    .cancelledTag {
+      font-size:.7rem;
+      color:#c62828;
+      font-weight:600;
+      margin-top:6px;
+    }
+
+    .emptyState {
+      color:#8a7566;
+      font-size:.85rem;
+    }
+
+    .errorState {
+      color:#c62828;
+      font-size:.85rem;
+    }
+
+    @media (max-width:420px) {
+      .dateRow {
+        grid-template-columns:1fr;
+      }
+    }
+
+  </style>  <script>
+
     const API_URL = import.meta.env.PUBLIC_API_URL;
+
     let currentFilter = "all";
     let allTransaksi = [];
 
-    document.querySelectorAll('.filterBtn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.filterBtn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFilter = btn.dataset.tipe;
+
+    // ==========================================================
+    // FILTER TIPE
+    // ==========================================================
+
+    document.querySelectorAll(".filterBtn").forEach(btn => {
+
+      btn.addEventListener("click", () => {
+
+        document.querySelectorAll(".filterBtn")
+          .forEach(b => b.classList.remove("active"));
+
+        btn.classList.add("active");
+
+        currentFilter = btn.dataset.tipe || "all";
+
         renderRiwayat();
+
       });
+
     });
 
-    document.getElementById('startDate').addEventListener('change', renderRiwayat);
-    document.getElementById('endDate').addEventListener('change', renderRiwayat);
 
-    document.getElementById('btnResetDate').addEventListener('click', () => {
-      document.getElementById('startDate').value = '';
-      document.getElementById('endDate').value = '';
-      renderRiwayat();
-    });
+    // ==========================================================
+    // FILTER TANGGAL
+    // ==========================================================
 
-    function tagClass(tipe) {
-      return tipe;
+    document.getElementById("startDate")
+      .addEventListener("change", renderRiwayat);
+
+    document.getElementById("endDate")
+      .addEventListener("change", renderRiwayat);
+
+
+    document.getElementById("btnResetDate")
+      .addEventListener("click", () => {
+
+        document.getElementById("startDate").value = "";
+        document.getElementById("endDate").value = "";
+
+        renderRiwayat();
+
+      });
+
+
+    // ==========================================================
+    // ESCAPE HTML
+    // ==========================================================
+
+    function esc(value) {
+
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
     }
 
+
+    // ==========================================================
+    // ID TRANSAKSI
+    // ==========================================================
+
+    function getId(t) {
+
+      return t.idTransaksi ??
+             t.id_transaksi ??
+             "";
+
+    }
+
+
+    // ==========================================================
+    // RENDER
+    // ==========================================================
+
     function renderRiwayat() {
-      const el = document.getElementById('riwayatList');
-      const startDate = document.getElementById('startDate').value;
-      const endDate = document.getElementById('endDate').value;
+
+      const el = document.getElementById("riwayatList");
+
+      const start =
+        document.getElementById("startDate").value;
+
+      const end =
+        document.getElementById("endDate").value;
+
 
       let data = allTransaksi.filter(t => {
-        if (currentFilter !== 'all' && t.tipe !== currentFilter) return false;
 
-        if (startDate || endDate) {
-          const date = String(t.timestamp || '').slice(0, 10);
-          if (startDate && date < startDate) return false;
-          if (endDate && date > endDate) return false;
+        if (
+          currentFilter !== "all" &&
+          t.tipe !== currentFilter
+        ) {
+          return false;
         }
 
+
+        const tanggal =
+          String(t.timestamp || "").slice(0, 10);
+
+
+        if (start && tanggal < start) {
+          return false;
+        }
+
+
+        if (end && tanggal > end) {
+          return false;
+        }
+
+
         return true;
+
       });
+
 
       data = data.slice(0, 50);
 
-      if (data.length === 0) {
-        el.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;">Gak ada transaksi di rentang ini.</p>';
+
+      if (!data.length) {
+
+        el.innerHTML = `
+          <p class="emptyState">
+            Gak ada transaksi di rentang ini.
+          </p>
+        `;
+
         return;
+
       }
+
 
       el.innerHTML = data.map(t => {
-        const isCancelled = (t.keterangan || '').indexOf('[DIBATALKAN]') !== -1;
-        const stokAkhir = t.stokAkhir ?? t.stokFisik ?? '';
-        const idTransaksi = t.idTransaksi ?? t.id_transaksi ?? '';
+
+        const id = getId(t);
+
+        const keterangan =
+          String(t.keterangan || "");
+
+        const cancelled =
+          keterangan.includes("[DIBATALKAN]");
+
+
+        const stokLama =
+          t.stokLama ??
+          t.stok_lama ??
+          "";
+
+        const stokAkhir =
+          t.stokAkhir ??
+          t.stok_akhir ??
+          "";
+
 
         return `
-          <div class="trxItem ${isCancelled ? 'cancelled' : ''}">
+          <div class="trxItem ${cancelled ? "cancelled" : ""}">
+
             <div class="trxTop">
+
               <div>
-                <div class="trxNama">${t.nama}</div>
-                <div class="trxMeta">${t.timestamp} | ${t.petugas || ''}</div>
+
+                <div class="trxNama">
+                  ${esc(t.nama)}
+                </div>
+
+                <div class="trxMeta">
+                  ${esc(t.timestamp)}
+                  ${t.petugas ? ` | ${esc(t.petugas)}` : ""}
+                </div>
+
               </div>
-              <span class="trxTag ${tagClass(t.tipe)}">${t.tipe}</span>
+
+              <span class="trxTag ${esc(t.tipe)}">
+                ${esc(t.tipe)}
+              </span>
+
             </div>
+
 
             <div class="trxStok">
-              Qty: ${t.qty} ${t.satuan} | Stok: ${t.stokLama} → ${stokAkhir}
+              Qty: ${esc(t.qty)}
+              ${esc(t.satuan)}
+              |
+              Stok: ${esc(stokLama)}
+              → ${esc(stokAkhir)}
             </div>
 
-            ${t.keterangan ? `<div class="trxMeta">${t.keterangan}</div>` : ''}
 
-            ${isCancelled
-              ? '<div class="cancelledTag">✕ Transaksi ini sudah dibatalkan</div>'
-              : `<button class="btnUndo" data-id="${idTransaksi}">↩️ Batalkan transaksi ini</button>`
+            ${
+              keterangan
+                ? `<div class="trxMeta">${esc(keterangan)}</div>`
+                : ""
             }
+
+
+            ${
+              cancelled
+
+                ? `
+                  <div class="cancelledTag">
+                    ✕ Transaksi ini sudah dibatalkan
+                  </div>
+                `
+
+                : `
+                  <button
+                    type="button"
+                    class="btnUndo"
+                    data-id="${esc(id)}"
+                  >
+                    ↩️ Batalkan transaksi ini
+                  </button>
+                `
+            }
+
           </div>
         `;
-      }).join('');
 
-      el.querySelectorAll('.btnUndo').forEach(btn => {
-        btn.addEventListener('click', () => undoTransaksi(btn.dataset.id, btn));
-      });
+      }).join("");
+
+
+      el.querySelectorAll(".btnUndo")
+        .forEach(btn => {
+
+          btn.addEventListener("click", () => {
+
+            undoTransaksi(
+              btn.dataset.id,
+              btn
+            );
+
+          });
+
+        });
+
     }
+
+
+    // ==========================================================
+    // LOAD DARI D1
+    // ==========================================================
 
     async function loadRiwayat() {
-      const el = document.getElementById('riwayatList');
-      el.innerHTML = 'Memuat...';
+
+      const el =
+        document.getElementById("riwayatList");
+
+      el.innerHTML = "Memuat...";
+
 
       try {
-        const res = await fetch(`${API_URL}/api/transaksi`);
-        const result = await res.json();
 
-        if (!result.success) {
-          throw new Error(result.message || 'Gagal mengambil transaksi');
+        if (!API_URL) {
+          throw new Error("PUBLIC_API_URL belum diset");
         }
 
-        allTransaksi = Array.isArray(result.data) ? result.data : [];
+
+        const res =
+          await fetch(
+            `${API_URL}/api/transaksi`
+          );
+
+
+        const result =
+          await res.json();
+
+
+        if (!res.ok || !result.success) {
+
+          throw new Error(
+            result.message ||
+            "Gagal mengambil transaksi"
+          );
+
+        }
+
+
+        allTransaksi =
+          Array.isArray(result.data)
+            ? result.data
+            : [];
+
+
         renderRiwayat();
+
       } catch (err) {
+
         console.error(err);
-        el.innerHTML = '<p style="color:#c62828;">Gagal memuat riwayat.</p>';
+
+        el.innerHTML = `
+          <p class="errorState">
+            Gagal memuat riwayat.
+            ${esc(err.message)}
+          </p>
+        `;
+
       }
+
     }
 
-    async function undoTransaksi(idTransaksi, btn) {
-      const konfirmasi = confirm(
-        `Batalkan transaksi ${idTransaksi}?\n\nStok bakal dibalikin ke kondisi sebelum transaksi ini.`
-      );
 
-      if (!konfirmasi) return;
+    // ==========================================================
+    // BATAL TRANSAKSI
+    // ==========================================================
+
+    async function undoTransaksi(id, btn) {
+
+      if (!id) {
+
+        alert("ID transaksi tidak ditemukan.");
+
+        return;
+
+      }
+
+
+      if (
+        !confirm(
+          "Batalkan transaksi ini?\n\n" +
+          "Stok akan dikembalikan ke kondisi sebelum transaksi."
+        )
+      ) {
+
+        return;
+
+      }
+
 
       btn.disabled = true;
-      btn.textContent = 'Membatalkan...';
+      btn.textContent = "Membatalkan...";
+
 
       try {
-        const res = await fetch(`${API_URL}/api/transaksi`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idTransaksi })
-        });
-        const result = await res.json();
 
-        if (result.success) {
-          alert(result.message);
-          loadRiwayat();
-        } else {
-          alert('Gagal: ' + result.message);
-          btn.disabled = false;
-          btn.textContent = '↩️ Batalkan transaksi ini';
+        const res =
+          await fetch(
+            `${API_URL}/api/transaksi`,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type": "application/json"
+              },
+
+              body: JSON.stringify({
+                idTransaksi: id
+              })
+
+            }
+          );
+
+
+        const result =
+          await res.json();
+
+
+        if (!res.ok || !result.success) {
+
+          throw new Error(
+            result.message ||
+            "Gagal membatalkan transaksi"
+          );
+
         }
+
+
+        alert(
+          result.message ||
+          "Transaksi berhasil dibatalkan."
+        );
+
+
+        await loadRiwayat();
+
       } catch (err) {
-        alert('Gagal terhubung ke server');
+
+        console.error(err);
+
+        alert(
+          "Gagal: " +
+          (err.message || "Server error")
+        );
+
         btn.disabled = false;
-        btn.textContent = '↩️ Batalkan transaksi ini';
+        btn.textContent =
+          "↩️ Batalkan transaksi ini";
+
       }
+
     }
 
+
+    // ==========================================================
+    // START
+    // ==========================================================
+
     loadRiwayat();
-  </script>
-</Layout>
+
+  </script></Layout>
