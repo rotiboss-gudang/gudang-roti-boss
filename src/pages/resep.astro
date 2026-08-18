@@ -1,304 +1,1150 @@
+"src/pages/resep.astro"
+
 ---
 import Layout from "../layouts/Layout.astro";
 ---
+
 <Layout active="resep">
   <div class="card">
     <h2 class="sectionTitle">🏭 Produksi</h2>
-    <div class="petugasBox">👤 Petugas: <strong id="petugasName">-</strong></div>
+
+    <label>Petugas</label>
+    <select id="prodPetugas">
+      <option value="">Pilih petugas...</option>
+    </select>
 
     <label>Produk</label>
-    <select id="prodProduk"><option value="">Pilih resep...</option></select>
+    <select id="prodProduk">
+      <option value="">Pilih resep...</option>
+    </select>
 
     <div id="resepPreview"></div>
 
     <label>Jumlah Batch</label>
+
     <div class="qtyRow">
       <button id="batchMinus" class="qtyBtn">−</button>
-      <input type="number" id="prodBatch" value="1" min="1" step="1" />
+      <input
+        type="number"
+        id="prodBatch"
+        value="1"
+        min="1"
+        step="1"
+      />
       <button id="batchPlus" class="qtyBtn">+</button>
     </div>
 
-    <button id="btnProduksi" class="btn-primary">🏭 Produksi Sekarang</button>
+    <button id="btnProduksi" class="btn-primary">
+      🏭 Produksi Sekarang
+    </button>
+
     <div id="prodMsg"></div>
   </div>
 
+
   <div class="card">
     <h2 class="sectionTitle">➕ Tambah Bahan ke Resep</h2>
+
     <label>Nama Produk</label>
-    <input type="text" id="rProduk" placeholder="misal: Roti Tawar (produk baru atau yang udah ada)" />
+
+    <input
+      type="text"
+      id="rProduk"
+      placeholder="misal: Roti Tawar"
+    />
+
 
     <label>Bahan Baku</label>
+
     <div class="searchWrap">
-      <input type="text" id="rBahanSearch" placeholder="Ketik nama bahan..." autocomplete="off" />
-      <div id="rBahanResults" class="searchResults hidden"></div>
+      <input
+        type="text"
+        id="rBahanSearch"
+        placeholder="Ketik nama bahan..."
+        autocomplete="off"
+      />
+
+      <div
+        id="rBahanResults"
+        class="searchResults hidden"
+      ></div>
     </div>
 
-    <label>Qty per Batch</label>
-    <input type="number" id="rQty" placeholder="misal: 5" step="0.01" />
 
-    <button id="btnAddResep" class="btn-primary">Tambah ke Resep</button>
+    <label>Qty per Batch</label>
+
+    <input
+      type="number"
+      id="rQty"
+      placeholder="misal: 5"
+      step="0.01"
+      min="0"
+    />
+
+
+    <button
+      id="btnAddResep"
+      class="btn-primary"
+    >
+      Tambah ke Resep
+    </button>
+
     <div id="addMsg"></div>
   </div>
 
+
   <div class="card">
     <h2 class="sectionTitle">🧾 Semua Resep</h2>
-    <div id="resepList">Memuat...</div>
+
+    <div id="resepList">
+      Memuat...
+    </div>
   </div>
 
+
   <style is:global>
-    .sectionTitle { margin-bottom: 12px; font-size: 1rem; }
-    label { display: block; font-size: 0.8rem; color: #8a7566; margin: 12px 0 4px; }
-    label:first-of-type { margin-top: 0; }
-    select, input[type="text"], input[type="number"] {
-      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa;
+    .sectionTitle {
+      margin-bottom: 12px;
+      font-size: 1rem;
     }
-    .searchWrap { position: relative; }
-    .searchResults { position: relative; margin-top: 4px; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 10px; background: #fff; }
-    .searchResults.hidden { display: none; }
-    .searchItem { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; }
-    .searchItem:last-child { border-bottom: none; }
-    .searchItem:active { background: #f2ece4; }
-    .qtyRow { display: flex; align-items: center; gap: 10px; }
-    .qtyRow input { text-align: center; flex: 1; }
-    .qtyBtn { width: 44px; height: 44px; border-radius: 50%; border: none; background: #f2ece4; color: #5c3d2e; font-size: 1.3rem; font-weight: 700; }
-    .btn-primary { width: 100%; padding: 14px; background: #5c3d2e; color: #fff; border: none; border-radius: 12px; font-weight: 600; margin-top: 12px; }
-    .btn-primary:disabled { opacity: 0.6; }
-    #prodMsg, #addMsg { font-size: 0.85rem; margin-top: 10px; white-space: pre-line; }
-    #prodMsg.ok, #addMsg.ok { color: #2e7d32; }
-    #prodMsg.err, #addMsg.err { color: #c62828; font-weight: 600; }
-    #resepPreview { font-size: 0.78rem; color: #8a7566; margin-top: 8px; background: #f9f5f0; border-radius: 8px; padding: 8px 10px; }
-    #resepPreview .item { display: flex; justify-content: space-between; padding: 2px 0; }
-    .resepGroup { margin-bottom: 16px; }
-    .resepGroup:last-child { margin-bottom: 0; }
-    .resepGroupTitle { font-weight: 700; font-size: 0.92rem; margin-bottom: 6px; }
-    .resepItem { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.82rem; }
-    .resepItem:last-child { border-bottom: none; }
-    .btnDelItem { color: #c62828; background: none; border: none; font-size: 0.75rem; padding: 4px 8px; }
-    .petugasBox { background: #f9f5f0; border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; margin-bottom: 4px; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: #8a7566;
+      margin: 12px 0 4px;
+    }
+
+    label:first-of-type {
+      margin-top: 0;
+    }
+
+    select,
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fafafa;
+      box-sizing: border-box;
+    }
+
+    .searchWrap {
+      position: relative;
+    }
+
+    .searchResults {
+      position: relative;
+      margin-top: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+      z-index: 10;
+    }
+
+    .searchResults.hidden {
+      display: none;
+    }
+
+    .searchItem {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.85rem;
+    }
+
+    .searchItem:last-child {
+      border-bottom: none;
+    }
+
+    .searchItem:active {
+      background: #f2ece4;
+    }
+
+    .qtyRow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .qtyRow input {
+      text-align: center;
+      flex: 1;
+    }
+
+    .qtyBtn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: #f2ece4;
+      color: #5c3d2e;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: #5c3d2e;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+    }
+
+    #prodMsg,
+    #addMsg {
+      font-size: 0.85rem;
+      margin-top: 10px;
+      white-space: pre-line;
+    }
+
+    #prodMsg.ok,
+    #addMsg.ok {
+      color: #2e7d32;
+    }
+
+    #prodMsg.err,
+    #addMsg.err {
+      color: #c62828;
+      font-weight: 600;
+    }
+
+    #resepPreview {
+      font-size: 0.78rem;
+      color: #8a7566;
+      margin-top: 8px;
+      background: #f9f5f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+
+    #resepPreview .item {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+      gap: 8px;
+    }
+
+    .resepGroup {
+      margin-bottom: 16px;
+    }
+
+    .resepGroup:last-child {
+      margin-bottom: 0;
+    }
+
+    .resepGroupTitle {
+      font-weight: 700;
+      font-size: 0.92rem;
+      margin-bottom: 6px;
+    }
+
+    .resepItem {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.82rem;
+      gap: 8px;
+    }
+
+    .resepItem:last-child {
+      border-bottom: none;
+    }
+
+    .btnDelItem {
+      color: #c62828;
+      background: none;
+      border: none;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }
+
+    .emptyMsg {
+      color: #8a7566;
+      font-size: 0.85rem;
+    }
   </style>
+
 
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL;
+
     let allBahan = [];
     let resepData = [];
     let selectedBahanSku = "";
 
+
+    // ========================================================
+    // PETUGAS
+    // ========================================================
+
     function getPetugas() {
       try {
-        const s = JSON.parse(localStorage.getItem('gudangPetugas') || 'null');
-        return s ? s.nama : '';
-      } catch (e) { return ''; }
+        const s = JSON.parse(
+          localStorage.getItem("gudangPetugas") || "null"
+        );
+
+        return s?.nama || "";
+
+      } catch {
+        return "";
+      }
     }
-    document.getElementById('petugasName').textContent = getPetugas() || '-';
+
+
+    function loadPetugas() {
+      const sel =
+        document.getElementById("prodPetugas");
+
+      const petugas = getPetugas();
+
+      if (petugas) {
+        sel.innerHTML =
+          `<option value="${petugas}">
+            ${petugas}
+          </option>`;
+
+        sel.value = petugas;
+      }
+    }
+
+
+    // ========================================================
+    // BAHAN — D1
+    // GET /api/bahan
+    // ========================================================
 
     async function loadBahan() {
+
       try {
-        const res = await fetch(`${API_URL}?action=getMasterData`);
-        allBahan = await res.json();
-      } catch (err) { allBahan = []; }
+
+        const res =
+          await fetch(`${API_URL}/api/bahan`);
+
+        const result =
+          await res.json();
+
+        if (!result.success) {
+          throw new Error(
+            result.message || "Gagal mengambil bahan"
+          );
+        }
+
+        allBahan =
+          Array.isArray(result.data)
+            ? result.data
+            : [];
+
+      } catch (err) {
+
+        console.error(
+          "loadBahan:",
+          err
+        );
+
+        allBahan = [];
+      }
     }
 
-    async function loadResep() {
-      const listEl = document.getElementById('resepList');
-      const prodSel = document.getElementById('prodProduk');
-      try {
-        const res = await fetch(`${API_URL}?action=getResepList`);
-        resepData = await res.json();
 
-        prodSel.innerHTML = '<option value="">Pilih resep...</option>' +
-          resepData.map(r => `<option value="${r.produk}">${r.produk}</option>`).join('');
+    // ========================================================
+    // RESEP — D1
+    // GET /api/resep
+    // ========================================================
+
+    async function loadResep() {
+
+      const listEl =
+        document.getElementById("resepList");
+
+      const prodSel =
+        document.getElementById("prodProduk");
+
+
+      try {
+
+        const res =
+          await fetch(`${API_URL}/api/resep`);
+
+        const result =
+          await res.json();
+
+        if (!result.success) {
+          throw new Error(
+            result.message || "Gagal mengambil resep"
+          );
+        }
+
+
+        const rows =
+          Array.isArray(result.data)
+            ? result.data
+            : [];
+
+
+        // ----------------------------------------------------
+        // Bentuk ulang data flat D1 menjadi:
+        //
+        // [
+        //   {
+        //     produk,
+        //     bahan: [...]
+        //   }
+        // ]
+        // ----------------------------------------------------
+
+        const groups = {};
+
+
+        rows.forEach(row => {
+
+          if (!groups[row.produk]) {
+
+            groups[row.produk] = {
+              produk: row.produk,
+              bahan: []
+            };
+
+          }
+
+
+          const bahan =
+            allBahan.find(
+              b => b.sku === row.sku
+            );
+
+
+          groups[row.produk].bahan.push({
+
+            sku: row.sku,
+
+            nama:
+              bahan?.nama ||
+              row.sku,
+
+            satuan:
+              bahan?.satuan ||
+              "",
+
+            stokTersedia:
+              Number(bahan?.stok || 0),
+
+            qtyPerBatch:
+              Number(row.qtyPerBatch || 0)
+
+          });
+
+        });
+
+
+        resepData =
+          Object.values(groups);
+
+
+        // ----------------------------------------------------
+        // Dropdown produk
+        // ----------------------------------------------------
+
+        prodSel.innerHTML =
+          `<option value="">
+            Pilih resep...
+          </option>` +
+          resepData
+            .map(r =>
+              `<option value="${escapeHtml(r.produk)}">
+                ${escapeHtml(r.produk)}
+              </option>`
+            )
+            .join("");
+
+
+        // ----------------------------------------------------
+        // List resep
+        // ----------------------------------------------------
 
         if (resepData.length === 0) {
-          listEl.innerHTML = '<p style="color:#8a7566;font-size:0.85rem;">Belum ada resep. Tambahin dulu di form atas.</p>';
+
+          listEl.innerHTML =
+            `<p class="emptyMsg">
+              Belum ada resep.
+              Tambahkan bahan ke resep dulu.
+            </p>`;
+
           return;
         }
 
-        listEl.innerHTML = resepData.map(r => `
-          <div class="resepGroup">
-            <div class="resepGroupTitle">${r.produk}</div>
-            ${r.bahan.map(b => `
-              <div class="resepItem">
-                <span>${b.nama} — ${b.qtyPerBatch} ${b.satuan}/batch</span>
-                <button class="btnDelItem" data-produk="${r.produk}" data-sku="${b.sku}">✕ Hapus</button>
+
+        listEl.innerHTML =
+          resepData
+            .map(r => `
+
+              <div class="resepGroup">
+
+                <div class="resepGroupTitle">
+                  ${escapeHtml(r.produk)}
+                </div>
+
+                ${r.bahan.map(b => `
+
+                  <div class="resepItem">
+
+                    <span>
+                      ${escapeHtml(b.nama)}
+                      —
+                      ${b.qtyPerBatch}
+                      ${escapeHtml(b.satuan)}/batch
+                    </span>
+
+                    <button
+                      class="btnDelItem"
+                      data-produk="${escapeAttr(r.produk)}"
+                      data-sku="${escapeAttr(b.sku)}"
+                    >
+                      ✕ Hapus
+                    </button>
+
+                  </div>
+
+                `).join("")}
+
               </div>
-            `).join('')}
-          </div>
-        `).join('');
 
-        listEl.querySelectorAll('.btnDelItem').forEach(btn => {
-          btn.addEventListener('click', () => deleteItem(btn.dataset.produk, btn.dataset.sku));
-        });
+            `)
+            .join("");
+
+
+        listEl
+          .querySelectorAll(".btnDelItem")
+          .forEach(btn => {
+
+            btn.addEventListener(
+              "click",
+              () =>
+                deleteItem(
+                  btn.dataset.produk,
+                  btn.dataset.sku
+                )
+            );
+
+          });
+
+
       } catch (err) {
-        listEl.innerHTML = '<p style="color:#c62828;">Gagal memuat resep.</p>';
+
+        console.error(
+          "loadResep:",
+          err
+        );
+
+        listEl.innerHTML =
+          `<p style="color:#c62828;">
+            Gagal memuat resep.
+          </p>`;
       }
     }
 
-    async function deleteItem(produk, sku) {
-      if (!confirm(`Hapus bahan ini dari resep "${produk}"?`)) return;
+
+    // ========================================================
+    // DELETE RESEP — D1
+    // DELETE /api/resep
+    // ========================================================
+
+    async function deleteItem(
+      produk,
+      sku
+    ) {
+
+      if (
+        !confirm(
+          `Hapus bahan ini dari resep "${produk}"?`
+        )
+      ) {
+        return;
+      }
+
+
       try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'deleteResepItem', data: { produk, sku } })
-        });
-        const result = await res.json();
-        if (result.success) {
-          await loadResep();
-          updatePreview();
-        } else {
-          alert('Gagal: ' + result.message);
+
+        const res =
+          await fetch(
+            `${API_URL}/api/resep`,
+            {
+              method: "DELETE",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+                produk,
+                sku
+              })
+            }
+          );
+
+
+        const result =
+          await res.json();
+
+
+        if (!result.success) {
+
+          alert(
+            "Gagal: " +
+            result.message
+          );
+
+          return;
         }
+
+
+        await loadResep();
+
+        updatePreview();
+
+
       } catch (err) {
-        alert('Gagal terhubung ke server');
+
+        console.error(
+          "deleteItem:",
+          err
+        );
+
+        alert(
+          "Gagal terhubung ke server"
+        );
       }
     }
 
-    // Search-combo buat pilih bahan pas nambah resep
-    const bSearch = document.getElementById('rBahanSearch');
-    const bResults = document.getElementById('rBahanResults');
+
+    // ========================================================
+    // SEARCH BAHAN
+    // ========================================================
+
+    const bSearch =
+      document.getElementById(
+        "rBahanSearch"
+      );
+
+    const bResults =
+      document.getElementById(
+        "rBahanResults"
+      );
+
 
     function refreshBahanResults() {
-      const q = bSearch.value.toLowerCase().trim();
-      const filtered = q === "" ? allBahan : allBahan.filter(p => p.nama.toLowerCase().includes(q));
+
+      const q =
+        bSearch.value
+          .toLowerCase()
+          .trim();
+
+
+      const filtered =
+        q === ""
+          ? allBahan
+          : allBahan.filter(
+              p =>
+                p.nama
+                  .toLowerCase()
+                  .includes(q)
+            );
+
+
       if (filtered.length === 0) {
-        bResults.innerHTML = '<div class="searchItem">Gak ketemu</div>';
+
+        bResults.innerHTML =
+          `<div class="searchItem">
+            Gak ketemu
+          </div>`;
+
       } else {
-        bResults.innerHTML = filtered.map(p => `<div class="searchItem" data-sku="${p.sku}">${p.nama} (${p.satuan})</div>`).join('');
-        bResults.querySelectorAll('.searchItem').forEach(item => {
-          item.addEventListener('click', () => {
-            selectedBahanSku = item.dataset.sku;
-            bSearch.value = item.textContent;
-            bResults.classList.add('hidden');
+
+        bResults.innerHTML =
+          filtered
+            .map(p => `
+
+              <div
+                class="searchItem"
+                data-sku="${escapeAttr(p.sku)}"
+              >
+                ${escapeHtml(p.nama)}
+                (${escapeHtml(p.satuan)})
+              </div>
+
+            `)
+            .join("");
+
+
+        bResults
+          .querySelectorAll(".searchItem")
+          .forEach(item => {
+
+            item.addEventListener(
+              "click",
+              () => {
+
+                selectedBahanSku =
+                  item.dataset.sku;
+
+                bSearch.value =
+                  item.textContent.trim();
+
+                bResults
+                  .classList
+                  .add("hidden");
+
+              }
+            );
+
           });
-        });
       }
-      bResults.classList.remove('hidden');
+
+
+      bResults
+        .classList
+        .remove("hidden");
     }
-    bSearch.addEventListener('focus', refreshBahanResults);
-    bSearch.addEventListener('input', () => { selectedBahanSku = ""; refreshBahanResults(); });
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.searchWrap')) bResults.classList.add('hidden');
-    });
 
-    document.getElementById('btnAddResep').addEventListener('click', async () => {
-      const msgEl = document.getElementById('addMsg');
-      const btn = document.getElementById('btnAddResep');
-      const produk = document.getElementById('rProduk').value.trim();
-      const qty = document.getElementById('rQty').value;
 
-      if (!produk) { msgEl.textContent = 'Nama produk wajib diisi'; msgEl.className = 'err'; return; }
-      if (!selectedBahanSku) { msgEl.textContent = 'Pilih bahan dari daftar dulu'; msgEl.className = 'err'; return; }
-      if (!qty || parseFloat(qty) <= 0) { msgEl.textContent = 'Qty per batch harus lebih dari 0'; msgEl.className = 'err'; return; }
+    bSearch.addEventListener(
+      "focus",
+      refreshBahanResults
+    );
 
-      btn.disabled = true;
-      msgEl.textContent = 'Menyimpan...';
-      msgEl.className = '';
 
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'addResepBahan', data: { produk, sku: selectedBahanSku, qty } })
-        });
-        const result = await res.json();
+    bSearch.addEventListener(
+      "input",
+      () => {
 
-        if (result.success) {
-          msgEl.textContent = result.message;
-          msgEl.className = 'ok';
-          document.getElementById('rProduk').value = '';
-          bSearch.value = '';
-          document.getElementById('rQty').value = '';
-          selectedBahanSku = '';
-          await loadResep();
-        } else {
-          msgEl.textContent = result.message;
-          msgEl.className = 'err';
-        }
-      } catch (err) {
-        msgEl.textContent = 'Gagal terhubung ke server';
-        msgEl.className = 'err';
-      } finally {
-        btn.disabled = false;
+        selectedBahanSku = "";
+
+        refreshBahanResults();
+
       }
-    });
+    );
 
-    // Produksi
-    document.getElementById('batchMinus').addEventListener('click', () => {
-      const el = document.getElementById('prodBatch');
-      el.value = Math.max(1, parseInt(el.value || '1') - 1);
-      updatePreview();
-    });
-    document.getElementById('batchPlus').addEventListener('click', () => {
-      const el = document.getElementById('prodBatch');
-      el.value = parseInt(el.value || '0') + 1;
-      updatePreview();
-    });
-    document.getElementById('prodBatch').addEventListener('input', updatePreview);
-    document.getElementById('prodProduk').addEventListener('change', updatePreview);
+
+    document.addEventListener(
+      "click",
+      e => {
+
+        if (
+          !e.target.closest(".searchWrap")
+        ) {
+
+          bResults
+            .classList
+            .add("hidden");
+
+        }
+
+      }
+    );
+
+
+    // ========================================================
+    // TAMBAH RESEP — D1
+    // POST /api/resep
+    // ========================================================
+
+    document
+      .getElementById("btnAddResep")
+      .addEventListener(
+        "click",
+        async () => {
+
+          const msgEl =
+            document.getElementById(
+              "addMsg"
+            );
+
+          const btn =
+            document.getElementById(
+              "btnAddResep"
+            );
+
+
+          const produk =
+            document
+              .getElementById("rProduk")
+              .value
+              .trim();
+
+
+          const qty =
+            parseFloat(
+              document
+                .getElementById("rQty")
+                .value
+            );
+
+
+          if (!produk) {
+
+            msgEl.textContent =
+              "Nama produk wajib diisi";
+
+            msgEl.className =
+              "err";
+
+            return;
+          }
+
+
+          if (!selectedBahanSku) {
+
+            msgEl.textContent =
+              "Pilih bahan dari daftar dulu";
+
+            msgEl.className =
+              "err";
+
+            return;
+          }
+
+
+          if (
+            !Number.isFinite(qty) ||
+            qty <= 0
+          ) {
+
+            msgEl.textContent =
+              "Qty per batch harus lebih dari 0";
+
+            msgEl.className =
+              "err";
+
+            return;
+          }
+
+
+          btn.disabled = true;
+
+          msgEl.textContent =
+            "Menyimpan...";
+
+          msgEl.className = "";
+
+
+          try {
+
+            const res =
+              await fetch(
+                `${API_URL}/api/resep`,
+                {
+                  method: "POST",
+
+                  headers: {
+                    "Content-Type":
+                      "application/json"
+                  },
+
+                  body: JSON.stringify({
+                    produk,
+                    sku:
+                      selectedBahanSku,
+                    qtyPerBatch:
+                      qty
+                  })
+                }
+              );
+
+
+            const result =
+              await res.json();
+
+
+            if (!result.success) {
+
+              msgEl.textContent =
+                result.message ||
+                "Gagal menyimpan resep";
+
+              msgEl.className =
+                "err";
+
+              return;
+            }
+
+
+            msgEl.textContent =
+              result.message ||
+              "Resep berhasil ditambahkan";
+
+            msgEl.className =
+              "ok";
+
+
+            document
+              .getElementById("rProduk")
+              .value = "";
+
+            bSearch.value = "";
+
+            document
+              .getElementById("rQty")
+              .value = "";
+
+            selectedBahanSku = "";
+
+
+            await loadResep();
+
+
+            updatePreview();
+
+
+          } catch (err) {
+
+            console.error(
+              "addResep:",
+              err
+            );
+
+            msgEl.textContent =
+              "Gagal terhubung ke server";
+
+            msgEl.className =
+              "err";
+
+          } finally {
+
+            btn.disabled = false;
+
+          }
+
+        }
+      );
+
+
+    // ========================================================
+    // PREVIEW PRODUKSI
+    // ========================================================
+
+    document
+      .getElementById("batchMinus")
+      .addEventListener(
+        "click",
+        () => {
+
+          const el =
+            document.getElementById(
+              "prodBatch"
+            );
+
+          el.value =
+            Math.max(
+              1,
+              parseInt(
+                el.value || "1"
+              ) - 1
+            );
+
+          updatePreview();
+
+        }
+      );
+
+
+    document
+      .getElementById("batchPlus")
+      .addEventListener(
+        "click",
+        () => {
+
+          const el =
+            document.getElementById(
+              "prodBatch"
+            );
+
+          el.value =
+            parseInt(
+              el.value || "0"
+            ) + 1;
+
+          updatePreview();
+
+        }
+      );
+
+
+    document
+      .getElementById("prodBatch")
+      .addEventListener(
+        "input",
+        updatePreview
+      );
+
+
+    document
+      .getElementById("prodProduk")
+      .addEventListener(
+        "change",
+        updatePreview
+      );
+
 
     function updatePreview() {
-      const produk = document.getElementById('prodProduk').value;
-      const batch = parseFloat(document.getElementById('prodBatch').value) || 0;
-      const previewEl = document.getElementById('resepPreview');
-      const resep = resepData.find(r => r.produk === produk);
 
-      if (!resep) { previewEl.innerHTML = ''; return; }
+      const produk =
+        document
+          .getElementById(
+            "prodProduk"
+          )
+          .value;
 
-      previewEl.innerHTML = resep.bahan.map(b => {
-        const butuh = b.qtyPerBatch * batch;
-        const cukup = b.stokTersedia >= butuh;
-        return `<div class="item" style="${cukup ? '' : 'color:#c62828;font-weight:700;'}">
-          <span>${b.nama}</span><span>${butuh} / ${b.stokTersedia} ${b.satuan} ${cukup ? '' : '☠️'}</span>
-        </div>`;
-      }).join('');
+
+      const batch =
+        parseFloat(
+          document
+            .getElementById(
+              "prodBatch"
+            )
+            .value
+        ) || 0;
+
+
+      const previewEl =
+        document.getElementById(
+          "resepPreview"
+        );
+
+
+      const resep =
+        resepData.find(
+          r =>
+            r.produk === produk
+        );
+
+
+      if (!resep) {
+
+        previewEl.innerHTML = "";
+
+        return;
+      }
+
+
+      previewEl.innerHTML =
+        resep.bahan
+          .map(b => {
+
+            const butuh =
+              b.qtyPerBatch *
+              batch;
+
+            const cukup =
+              b.stokTersedia >=
+              butuh;
+
+
+            return `
+              <div
+                class="item"
+                style="${
+                  cukup
+                    ? ""
+                    : "color:#c62828;font-weight:700;"
+                }"
+              >
+                <span>
+                  ${escapeHtml(b.nama)}
+                </span>
+
+                <span>
+                  ${butuh}
+                  /
+                  ${b.stokTersedia}
+                  ${escapeHtml(b.satuan)}
+                  ${cukup ? "" : "☠️"}
+                </span>
+              </div>
+            `;
+
+          })
+          .join("");
     }
 
-    document.getElementById('btnProduksi').addEventListener('click', async () => {
-      const msgEl = document.getElementById('prodMsg');
-      const btn = document.getElementById('btnProduksi');
-      const petugas = getPetugas();
-      const produk = document.getElementById('prodProduk').value;
-      const jumlahBatch = document.getElementById('prodBatch').value;
 
-      if (!petugas) { msgEl.textContent = 'Pilih petugas dulu'; msgEl.className = 'err'; return; }
-      if (!produk) { msgEl.textContent = 'Pilih produk dulu'; msgEl.className = 'err'; return; }
+    // ========================================================
+    // PRODUKSI
+    //
+    // BELUM DIBUAT DI WORKER D1.
+    // Jangan kirim ke GAS lagi.
+    // ========================================================
 
-      if (!confirm(`Produksi "${produk}" x${jumlahBatch} batch? Ini bakal motong stok semua bahan sekaligus.`)) return;
+    document
+      .getElementById("btnProduksi")
+      .addEventListener(
+        "click",
+        () => {
 
-      btn.disabled = true;
-      msgEl.textContent = 'Memproses...';
-      msgEl.className = '';
+          const msgEl =
+            document.getElementById(
+              "prodMsg"
+            );
 
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'produksi', data: { produk, jumlahBatch, petugas } })
-        });
-        const result = await res.json();
 
-        msgEl.textContent = result.message;
-        msgEl.className = result.success ? 'ok' : 'err';
+          msgEl.textContent =
+            "⚠️ Modul produksi D1 belum diaktifkan. Resep sudah terhubung ke D1.";
 
-        if (result.success) {
-          document.getElementById('prodBatch').value = '1';
-          await loadBahan();
-          await loadResep();
-          updatePreview();
+          msgEl.className =
+            "err";
+
         }
-      } catch (err) {
-        msgEl.textContent = 'Gagal terhubung ke server';
-        msgEl.className = 'err';
-      } finally {
-        btn.disabled = false;
-      }
-    });
+      );
+
+
+    // ========================================================
+    // ESCAPE HTML
+    // ========================================================
+
+    function escapeHtml(value) {
+
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+    }
+
+
+    function escapeAttr(value) {
+      return escapeHtml(value);
+    }
+
+
+    // ========================================================
+    // INIT
+    // ========================================================
 
     async function init() {
-  
+
+      loadPetugas();
+
       await loadBahan();
+
       await loadResep();
+
     }
+
+
     init();
   </script>
 </Layout>
