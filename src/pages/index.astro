@@ -1,19 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro";
 ---
+
 <Layout active="dashboard">
   <div id="loading">Memuat data...</div>
-
-  <div
-    id="error"
-    style="display:none; text-align:center; padding:24px; color:#c62828;"
-  >
-    Gagal memuat data. Cek koneksi atau URL API.
-  </div>
-
+  <div id="error" style="display:none;text-align:center;padding:24px;color:#c62828;">Gagal memuat data. Cek koneksi atau URL API.</div>
   <div id="content" style="display:none;">
     <div class="grid" id="statGrid"></div>
-
     <div class="card">
       <h2 style="margin-bottom:12px;">⚠️ Perlu Perhatian</h2>
       <div id="perhatianList"></div>
@@ -21,167 +14,109 @@ import Layout from "../layouts/Layout.astro";
   </div>
 
   <style is:global>
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .grid .card {
-      text-align: center;
-      padding: 16px 8px;
-      margin-bottom: 0;
-    }
-
-    .grid .num {
-      font-size: 1.8rem;
-      font-weight: 700;
-    }
-
-    /* Supaya teks panjang (multi satuan) tetap muat */
-    .grid .card:nth-child(5) .num,
-    .grid .card:nth-child(6) .num {
-      font-size: 1rem;
-      line-height: 1.4;
-    }
-
-    .grid .label {
-      font-size: 0.75rem;
-      color: #8a7566;
-      margin-top: 4px;
-    }
-
-    .aman { color: #2e7d32; }
-    .menipis { color: #e07a1a; }
-    .expired { color: #c62828; }
-    .default { color: #4a2f22; }
-
-    .item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #eee;
-    }
-
-    .item:last-child {
-      border-bottom: none;
-    }
-
-    .item .nama {
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-
-    .item .sub {
-      font-size: 0.78rem;
-      color: #8a7566;
-    }
-
-    .tag {
-      font-size: 0.72rem;
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
-
-    .tag.menipis {
-      background: #fdecd2;
-      color: #b5651d;
-    }
-
-    .tag.expired {
-      background: #fbdcdc;
-      color: #b52a2a;
-    }
+    .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}.grid .card{text-align:center;padding:16px 8px;margin-bottom:0}.grid .num{font-size:1.8rem;font-weight:700}.grid .card:nth-child(5) .num,.grid .card:nth-child(6) .num{font-size:1rem;line-height:1.4}.grid .label{font-size:.75rem;color:#8a7566;margin-top:4px}.aman{color:#2e7d32}.menipis{color:#e07a1a}.expired{color:#c62828}.default{color:#4a2f22}.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee}.item:last-child{border-bottom:none}.item .nama{font-weight:600;font-size:.9rem}.item .sub{font-size:.78rem;color:#8a7566}.tag{font-size:.72rem;padding:4px 10px;border-radius:20px}.tag.menipis{background:#fdecd2;color:#b5651d}.tag.expired{background:#fbdcdc;color:#b52a2a}
   </style>
 
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL;
+    const $ = id => document.getElementById(id);
 
-function formatBySatuan(detail) {
-  if (!Array.isArray(detail) || detail.length === 0) return "0";
-
-  return detail
-    .map(function (item) {
-      const qty = Number(item.qty) || 0;
-      const satuan = String(item.satuan || "").trim() || "pcs";
-      const angka = Number.isInteger(qty) ? qty : Number(qty.toFixed(3));
-      return angka + " " + satuan;
-    })
-    .join(" + ");
-}
-
-async function loadDashboard() {
-  try {
-    const res = await fetch(API_URL + "?action=getDashboardData");
-    if (!res.ok) throw new Error("Gagal mengambil data API");
-
-    const data = await res.json();
-
-    const masukFormatted = formatBySatuan(data.masukHariIni || data.masukHariIniDetail);
-    const keluarFormatted = formatBySatuan(data.keluarHariIni || data.keluarHariIniDetail);
-
-    const stats = [
-      { num: data.totalJenis ?? 0, label: "Jenis Bahan", cls: "default" },
-      { num: data.aman ?? 0, label: "Stok Aman", cls: "aman" },
-      { num: data.menipis ?? 0, label: "Menipis", cls: "menipis" },
-      { num: data.expired ?? 0, label: "Expired", cls: "expired" },
-      { num: masukFormatted, label: "Masuk Hari Ini", cls: "default" },
-      { num: keluarFormatted, label: "Keluar Hari Ini", cls: "default" }
-    ];
-
-    // Render pakai concatenation biar aman
-    document.getElementById("statGrid").innerHTML = stats
-      .map(function (s) {
-        return (
-          '<div class="card">' +
-            '<div class="num ' + s.cls + '">' + s.num + '</div>' +
-            '<div class="label">' + s.label + '</div>' +
-          '</div>'
-        );
-      })
-      .join("");
-
-    // Perlu Perhatian
-    const perhatianEl = document.getElementById("perhatianList");
-
-    if (!data.perhatian || data.perhatian.length === 0) {
-      perhatianEl.innerHTML =
-        '<p style="color:#8a7566;font-size:0.85rem;">Semua bahan aman ✅</p>';
-    } else {
-      perhatianEl.innerHTML = data.perhatian
-        .map(function (p) {
-          const tagCls = p.status === "MENIPIS" ? "menipis" : "expired";
-          const tagText =
-            p.status === "MENIPIS"
-              ? "Menipis"
-              : p.expired
-                ? "Exp " + p.expired
-                : "Expired";
-
-          return (
-            '<div class="item">' +
-              "<div>" +
-                '<div class="nama">' + p.nama + "</div>" +
-                '<div class="sub">Stok: ' + p.stok + " " + p.satuan + " | Min: " + p.minStok + "</div>" +
-              "</div>" +
-              '<span class="tag ' + tagCls + '">' + tagText + "</span>" +
-            "</div>"
-          );
-        })
-        .join("");
+    function formatBySatuan(detail) {
+      if (!detail.length) return "0";
+      return detail.map(item => {
+        const qty = Number(item.qty) || 0;
+        const satuan = String(item.satuan || "pcs").trim();
+        return `${Number.isInteger(qty) ? qty : Number(qty.toFixed(3))} ${satuan}`;
+      }).join(" + ");
     }
 
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("content").style.display = "block";
-  } catch (err) {
-    console.error("ERROR loadDashboard:", err);
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("error").style.display = "block";
-  }
-}
+    function getStatus(p) {
+      const stok = Number(p.stok) || 0;
+      const minStok = Number(p.minStok) || 0;
+      if (p.expired) {
+        const today = new Date(); today.setHours(0,0,0,0);
+        const exp = new Date(`${p.expired}T00:00:00`);
+        if (!Number.isNaN(exp.getTime())) {
+          if (exp < today) return "EXPIRED";
+          if (Math.ceil((exp - today) / 86400000) <= 7) return "EXPIRED_SOON";
+        }
+      }
+      return stok <= minStok ? "MENIPIS" : "AMAN";
+    }
 
-loadDashboard();
+    async function loadDashboard() {
+      try {
+        // Dashboard resmi memakai MASTER BAHAN D1, bukan GAS.
+        const bahanRes = await fetch(`${API_URL}/api/bahan?_=${Date.now()}`, {
+          cache:"no-store",
+          headers:{Accept:"application/json","Cache-Control":"no-cache"}
+        });
+        if (!bahanRes.ok) throw new Error(`Bahan HTTP ${bahanRes.status}`);
+        const bahanJson = await bahanRes.json();
+        if (!bahanJson.success || !Array.isArray(bahanJson.data)) throw new Error(bahanJson.message || "Data bahan tidak valid");
+        const bahan = bahanJson.data;
+
+        let transaksi = [];
+        try {
+          const trxRes = await fetch(`${API_URL}/api/transaksi?_=${Date.now()}`, {
+            cache:"no-store",
+            headers:{Accept:"application/json","Cache-Control":"no-cache"}
+          });
+          if (trxRes.ok) {
+            const trxJson = await trxRes.json();
+            if (trxJson.success && Array.isArray(trxJson.data)) transaksi = trxJson.data;
+          }
+        } catch (e) { console.warn("Transaksi D1 gagal dimuat:", e); }
+
+        const now = new Date();
+        const today = `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,"0")}-${String(now.getUTCDate()).padStart(2,"0")}`;
+        const hariIni = transaksi.filter(t => String(t.timestamp || "").slice(0,10) === today);
+
+        function groupQty(tipe) {
+          const map = new Map();
+          hariIni.filter(t => t.tipe === tipe).forEach(t => {
+            const satuan = String(t.satuan || "pcs");
+            map.set(satuan, (map.get(satuan) || 0) + (Number(t.qty) || 0));
+          });
+          return [...map.entries()].map(([satuan,qty]) => ({satuan,qty}));
+        }
+
+        const aman = bahan.filter(p => getStatus(p) === "AMAN").length;
+        const menipis = bahan.filter(p => getStatus(p) === "MENIPIS").length;
+        const expired = bahan.filter(p => ["EXPIRED","EXPIRED_SOON"].includes(getStatus(p))).length;
+
+        const stats = [
+          {num:bahan.length,label:"Jenis Bahan",cls:"default"},
+          {num:aman,label:"Stok Aman",cls:"aman"},
+          {num:menipis,label:"Menipis",cls:"menipis"},
+          {num:expired,label:"Expired",cls:"expired"},
+          {num:formatBySatuan(groupQty("Masuk")),label:"Masuk Hari Ini",cls:"default"},
+          {num:formatBySatuan(groupQty("Keluar")),label:"Keluar Hari Ini",cls:"default"}
+        ];
+
+        $("statGrid").innerHTML = stats.map(s => `<div class="card"><div class="num ${s.cls}">${s.num}</div><div class="label">${s.label}</div></div>`).join("");
+
+        const perhatian = bahan.filter(p => ["MENIPIS","EXPIRED","EXPIRED_SOON"].includes(getStatus(p)));
+        if (!perhatian.length) {
+          $("perhatianList").innerHTML = '<p style="color:#8a7566;font-size:.85rem;">Semua bahan aman ✅</p>';
+        } else {
+          $("perhatianList").innerHTML = perhatian.map(p => {
+            const status = getStatus(p);
+            const cls = status === "MENIPIS" ? "menipis" : "expired";
+            const text = status === "MENIPIS" ? "Menipis" : status === "EXPIRED" ? "Expired" : `Exp ${p.expired}`;
+            return `<div class="item"><div><div class="nama">${p.nama}</div><div class="sub">Stok: ${p.stok} ${p.satuan} | Min: ${p.minStok}</div></div><span class="tag ${cls}">${text}</span></div>`;
+          }).join("");
+        }
+
+        $("loading").style.display="none";
+        $("content").style.display="block";
+      } catch (err) {
+        console.error("ERROR loadDashboard:",err);
+        $("loading").style.display="none";
+        $("error").style.display="block";
+      }
+    }
+
+    loadDashboard();
   </script>
 </Layout>
