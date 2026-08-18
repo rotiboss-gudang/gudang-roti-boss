@@ -86,8 +86,8 @@ import Layout from "../layouts/Layout.astro";
 
     function getPetugas() {
       try {
-        const s = JSON.parse(localStorage.getItem("gudangPetugas") || "null");
-        return s ? s.nama : "";
+        const data = JSON.parse(localStorage.getItem("gudangPetugas") || "null");
+        return data?.nama || "";
       } catch { return ""; }
     }
 
@@ -98,99 +98,86 @@ import Layout from "../layouts/Layout.astro";
         const users = await res.json();
         sel.innerHTML = '<option value="">Pilih petugas...</option>' +
           users.map(u => `<option value="${u.nama}">${u.nama}</option>`).join("");
-        const current = getPetugas();
-        if (current) sel.value = current;
       } catch {
         const current = getPetugas();
-        if (current) sel.innerHTML = `<option value="${current}">${current}</option>`;
+        sel.innerHTML = current
+          ? `<option value="${current}">${current}</option>`
+          : '<option value="">Pilih petugas...</option>';
       }
+      const current = getPetugas();
+      if (current) sel.value = current;
     }
 
     async function loadBahan() {
-      try {
-        const res = await fetch(`${API_URL}/api/bahan`);
-        const result = await res.json();
-        if (!result.success) throw new Error(result.message || "Gagal mengambil bahan");
-        allBahan = result.data || [];
-      } catch (err) {
-        console.error("loadBahan", err);
-        allBahan = [];
-      }
+      const res = await fetch(`${API_URL}/api/bahan`);
+      const result = await res.json();
+      if (!result.success) throw new Error(result.message || "Gagal mengambil bahan");
+      allBahan = result.data || [];
     }
 
     function groupResep(rows) {
       const bahanMap = new Map(allBahan.map(b => [b.sku, b]));
       const groups = new Map();
 
-      rows.forEach(row => {
+      for (const row of rows) {
         if (!groups.has(row.produk)) groups.set(row.produk, { produk: row.produk, bahan: [] });
         const bahan = bahanMap.get(row.sku);
         groups.get(row.produk).bahan.push({
           sku: row.sku,
-          nama: bahan ? bahan.nama : row.sku,
-          satuan: bahan ? bahan.satuan : "",
+          nama: bahan?.nama || row.sku,
+          satuan: bahan?.satuan || "",
           qtyPerBatch: Number(row.qtyPerBatch) || 0,
-          stokTersedia: bahan ? Number(bahan.stok) || 0 : 0
+          stokTersedia: Number(bahan?.stok) || 0
         });
-      });
-      return Array.from(groups.values());
+      }
+      return [...groups.values()];
     }
 
     async function loadResep() {
       const listEl = document.getElementById("resepList");
       const prodSel = document.getElementById("prodProduk");
+      const res = await fetch(`${API_URL}/api/resep`);
+      const result = await res.json();
+      if (!result.success) throw new Error(result.message || "Gagal mengambil resep");
 
-      try {
-        const res = await fetch(`${API_URL}/api/resep`);
-        const result = await res.json();
-        if (!result.success) throw new Error(result.message || "Gagal mengambil resep");
+      resepData = groupResep(result.data || []);
+      prodSel.innerHTML = '<option value="">Pilih resep...</option>' +
+        resepData.map(r => `<option value="${r.produk}">${r.produk}</option>`).join("");
 
-        resepData = groupResep(result.data || []);
-        prodSel.innerHTML = '<option value="">Pilih resep...</option>' +
-          resepData.map(r => `<option value="${r.produk}">${r.produk}</option>`).join("");
-
-        if (!resepData.length) {
-          listEl.innerHTML = '<p style="color:#8a7566;font-size:.85rem;">Belum ada resep. Tambahin dulu di form atas.</p>';
-          updatePreview();
-          return;
-        }
-
-        listEl.innerHTML = resepData.map(r => `
-          <div class="resepGroup">
-            <div class="resepGroupTitle">${r.produk}</div>
-            ${r.bahan.map(b => `
-              <div class="resepItem">
-                <span>${b.nama} — ${b.qtyPerBatch} ${b.satuan}/batch</span>
-                <button class="btnDelItem" type="button" data-produk="${r.produk}" data-sku="${b.sku}">✕ Hapus</button>
-              </div>
-            `).join("")}
-          </div>
-        `).join("");
-
-        listEl.querySelectorAll(".btnDelItem").forEach(btn => {
-          btn.addEventListener("click", () => deleteItem(btn.dataset.produk, btn.dataset.sku));
-        });
+      if (!resepData.length) {
+        listEl.innerHTML = '<p style="color:#8a7566;font-size:.85rem;">Belum ada resep. Tambahin dulu di form atas.</p>';
         updatePreview();
-      } catch (err) {
-        console.error("loadResep", err);
-        listEl.innerHTML = '<p style="color:#c62828;">Gagal memuat resep.</p>';
+        return;
       }
+
+      listEl.innerHTML = resepData.map(r => `
+        <div class="resepGroup">
+          <div class="resepGroupTitle">${r.produk}</div>
+          ${r.bahan.map(b => `
+            <div class="resepItem">
+              <span>${b.nama} — ${b.qtyPerBatch} ${b.satuan}/batch</span>
+              <button class="btnDelItem" type="button" data-produk="${r.produk}" data-sku="${b.sku}">✕ Hapus</button>
+            </div>
+          `).join("")}
+        </div>
+      `).join("");
+
+      listEl.querySelectorAll(".btnDelItem").forEach(btn => {
+        btn.addEventListener("click", () => deleteItem(btn.dataset.produk, btn.dataset.sku));
+      });
+      updatePreview();
     }
 
     async function deleteItem(produk, sku) {
       if (!confirm(`Hapus bahan ini dari resep "${produk}"?`)) return;
-      try {
-        const res = await fetch(`${API_URL}/api/resep`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ produk, sku })
-        });
-        const result = await res.json();
-        if (!result.success) throw new Error(result.message || "Gagal menghapus resep");
-        await loadResep();
-      } catch (err) {
-        alert("Gagal: " + (err.message || "Gagal terhubung ke server"));
-      }
+      const res = await fetch(`${API_URL}/api/resep`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ produk, sku })
+      });
+      const result = await res.json();
+      if (!result.success) return alert("Gagal: " + (result.message || "Gagal menghapus resep"));
+      await loadResep();
     }
 
     const bSearch = document.getElementById("rBahanSearch");
@@ -198,23 +185,19 @@ import Layout from "../layouts/Layout.astro";
 
     function refreshBahanResults() {
       const q = bSearch.value.toLowerCase().trim();
-      const filtered = q ? allBahan.filter(p => p.nama.toLowerCase().includes(q)) : allBahan;
+      const filtered = q ? allBahan.filter(b => b.nama.toLowerCase().includes(q)) : allBahan;
 
-      if (!filtered.length) {
-        bResults.innerHTML = '<div class="searchItem">Gak ketemu</div>';
-      } else {
-        bResults.innerHTML = filtered.map(p =>
-          `<div class="searchItem" data-sku="${p.sku}">${p.nama} (${p.satuan})</div>`
-        ).join("");
+      bResults.innerHTML = filtered.length
+        ? filtered.map(b => `<div class="searchItem" data-sku="${b.sku}">${b.nama} (${b.satuan})</div>`).join("")
+        : '<div class="searchItem">Gak ketemu</div>';
 
-        bResults.querySelectorAll(".searchItem[data-sku]").forEach(item => {
-          item.addEventListener("click", () => {
-            selectedBahanSku = item.dataset.sku;
-            bSearch.value = item.textContent;
-            bResults.classList.add("hidden");
-          });
+      bResults.querySelectorAll(".searchItem[data-sku]").forEach(item => {
+        item.addEventListener("click", () => {
+          selectedBahanSku = item.dataset.sku;
+          bSearch.value = item.textContent;
+          bResults.classList.add("hidden");
         });
-      }
+      });
       bResults.classList.remove("hidden");
     }
 
@@ -233,13 +216,12 @@ import Layout from "../layouts/Layout.astro";
       const produk = document.getElementById("rProduk").value.trim();
       const qty = Number(document.getElementById("rQty").value);
 
-      if (!produk) { msgEl.textContent = "Nama produk wajib diisi"; msgEl.className = "err"; return; }
-      if (!selectedBahanSku) { msgEl.textContent = "Pilih bahan dari daftar dulu"; msgEl.className = "err"; return; }
-      if (!Number.isFinite(qty) || qty <= 0) { msgEl.textContent = "Qty per batch harus lebih dari 0"; msgEl.className = "err"; return; }
+      if (!produk) return showMsg(msgEl, "Nama produk wajib diisi", false);
+      if (!selectedBahanSku) return showMsg(msgEl, "Pilih bahan dari daftar dulu", false);
+      if (!Number.isFinite(qty) || qty <= 0) return showMsg(msgEl, "Qty per batch harus lebih dari 0", false);
 
       btn.disabled = true;
-      msgEl.textContent = "Menyimpan...";
-      msgEl.className = "";
+      showMsg(msgEl, "Menyimpan...", null);
 
       try {
         const res = await fetch(`${API_URL}/api/resep`, {
@@ -248,30 +230,31 @@ import Layout from "../layouts/Layout.astro";
           body: JSON.stringify({ produk, sku: selectedBahanSku, qtyPerBatch: qty })
         });
         const result = await res.json();
-
         if (!result.success) throw new Error(result.message || "Gagal menyimpan resep");
 
-        msgEl.textContent = result.message || "Resep berhasil ditambahkan";
-        msgEl.className = "ok";
+        showMsg(msgEl, result.message || "Resep berhasil ditambahkan", true);
         document.getElementById("rProduk").value = "";
         bSearch.value = "";
         document.getElementById("rQty").value = "";
         selectedBahanSku = "";
         await loadResep();
       } catch (err) {
-        msgEl.textContent = err.message || "Gagal terhubung ke server";
-        msgEl.className = "err";
+        showMsg(msgEl, err.message || "Gagal terhubung ke server", false);
       } finally {
         btn.disabled = false;
       }
     });
+
+    function showMsg(el, text, ok) {
+      el.textContent = text;
+      el.className = ok === true ? "ok" : ok === false ? "err" : "";
+    }
 
     function updatePreview() {
       const produk = document.getElementById("prodProduk").value;
       const batch = Number(document.getElementById("prodBatch").value) || 0;
       const previewEl = document.getElementById("resepPreview");
       const resep = resepData.find(r => r.produk === produk);
-
       if (!resep) { previewEl.innerHTML = ""; return; }
 
       previewEl.innerHTML = resep.bahan.map(b => {
@@ -286,11 +269,13 @@ import Layout from "../layouts/Layout.astro";
       el.value = Math.max(1, Number(el.value || 1) - 1);
       updatePreview();
     });
+
     document.getElementById("batchPlus").addEventListener("click", () => {
       const el = document.getElementById("prodBatch");
       el.value = Math.max(1, Number(el.value || 0) + 1);
       updatePreview();
     });
+
     document.getElementById("prodBatch").addEventListener("input", updatePreview);
     document.getElementById("prodProduk").addEventListener("change", updatePreview);
 
@@ -301,40 +286,42 @@ import Layout from "../layouts/Layout.astro";
       const produk = document.getElementById("prodProduk").value;
       const jumlahBatch = Number(document.getElementById("prodBatch").value);
 
-      if (!petugas) { msgEl.textContent = "Pilih petugas dulu"; msgEl.className = "err"; return; }
-      if (!produk) { msgEl.textContent = "Pilih produk dulu"; msgEl.className = "err"; return; }
-      if (!Number.isInteger(jumlahBatch) || jumlahBatch < 1) { msgEl.textContent = "Jumlah batch tidak valid"; msgEl.className = "err"; return; }
+      if (!petugas) return showMsg(msgEl, "Pilih petugas dulu", false);
+      if (!produk) return showMsg(msgEl, "Pilih produk dulu", false);
+      if (!Number.isInteger(jumlahBatch) || jumlahBatch < 1) return showMsg(msgEl, "Jumlah batch tidak valid", false);
       if (!confirm(`Produksi "${produk}" x${jumlahBatch} batch? Ini bakal motong stok semua bahan sekaligus.`)) return;
 
       btn.disabled = true;
-      msgEl.textContent = "Memproses...";
-      msgEl.className = "";
+      showMsg(msgEl, "Memproses...", null);
 
       try {
-        const res = await fetch(`${API_URL}?action=produksi`, {
+        const res = await fetch(`${API_URL}/api/produksi`, {
           method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "produksi", data: { produk, jumlahBatch, petugas } })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ produk, jumlahBatch, petugas })
         });
         const result = await res.json();
-        msgEl.textContent = result.message || "Selesai";
-        msgEl.className = result.success ? "ok" : "err";
-        if (result.success) {
-          document.getElementById("prodBatch").value = "1";
-          await loadBahan();
-          await loadResep();
-        }
-      } catch {
-        msgEl.textContent = "Gagal terhubung ke server";
-        msgEl.className = "err";
+        if (!result.success) throw new Error(result.message || "Produksi gagal");
+
+        showMsg(msgEl, result.message || "Produksi berhasil", true);
+        document.getElementById("prodBatch").value = "1";
+        await loadBahan();
+        await loadResep();
+      } catch (err) {
+        showMsg(msgEl, err.message || "Gagal terhubung ke server", false);
       } finally {
         btn.disabled = false;
       }
     });
 
     async function init() {
-      await Promise.all([loadUsers(), loadBahan()]);
-      await loadResep();
+      try {
+        await Promise.all([loadUsers(), loadBahan()]);
+        await loadResep();
+      } catch (err) {
+        console.error("init resep", err);
+        document.getElementById("resepList").innerHTML = '<p style="color:#c62828;">Gagal memuat data resep/bahan.</p>';
+      }
     }
 
     init();
