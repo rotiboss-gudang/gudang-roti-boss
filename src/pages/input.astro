@@ -80,243 +80,756 @@ import Layout from "../layouts/Layout.astro";
     #formMsg.err { color: #c62828; }
   </style>
 
-  <script src="https://unpkg.com/html5-qrcode" is:inline></script>
+ <script src="https://unpkg.com/html5-qrcode" is:inline></script>
 
-  <script>
-    const API_URL = import.meta.env.PUBLIC_API_URL;
-    let currentTipe = "Masuk";
-    let allBahan = [];
-    let selectedSku = "";
-    let forceNegative = false;
-    let html5QrCode = null;
-    let scanning = false;
+<script>
+  const API_URL = import.meta.env.PUBLIC_API_URL;
 
-    function getPetugas() {
-      try {
-        const s = JSON.parse(localStorage.getItem('gudangPetugas') || 'null');
-        return s ? s.nama : '';
-      } catch (e) { return ''; }
+  let currentTipe = "Masuk";
+  let allBahan = [];
+  let selectedSku = "";
+  let html5QrCode = null;
+  let scanning = false;
+
+  // ==========================================================
+  // PETUGAS
+  // ==========================================================
+
+  function getPetugas() {
+    try {
+      const s = JSON.parse(
+        localStorage.getItem("gudangPetugas") || "null"
+      );
+
+      return s ? s.nama : "";
+    } catch (e) {
+      return "";
     }
-    document.getElementById('petugasName').textContent = getPetugas() || '-';
+  }
 
-    document.querySelectorAll('.tipeBtn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tipeBtn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentTipe = btn.dataset.tipe;
-        forceNegative = false;
-        const isMasuk = currentTipe === 'Masuk';
-        document.getElementById('expLabel').style.display = isMasuk ? 'block' : 'none';
-        document.getElementById('fExp').style.display = isMasuk ? 'block' : 'none';
-        updateStokInfo();
-      });
+  document.getElementById("petugasName").textContent =
+    getPetugas() || "-";
+
+
+  // ==========================================================
+  // TIPE TRANSAKSI
+  // ==========================================================
+
+  document.querySelectorAll(".tipeBtn").forEach(btn => {
+
+    btn.addEventListener("click", () => {
+
+      document
+        .querySelectorAll(".tipeBtn")
+        .forEach(b => b.classList.remove("active"));
+
+      btn.classList.add("active");
+
+      currentTipe = btn.dataset.tipe;
+
+      const isMasuk =
+        currentTipe === "Masuk";
+
+      document.getElementById("expLabel").style.display =
+        isMasuk ? "block" : "none";
+
+      document.getElementById("fExp").style.display =
+        isMasuk ? "block" : "none";
+
+      updateStokInfo();
+
     });
 
-    async function loadBahan() {
-      try {
-        const res = await fetch(`${API_URL}?action=getMasterData`);
-        allBahan = await res.json();
-      } catch (err) { allBahan = []; }
+  });
+
+
+  // ==========================================================
+  // LOAD BAHAN — D1
+  // GET /api/bahan
+  // ==========================================================
+
+  async function loadBahan() {
+
+    try {
+
+      const res =
+        await fetch(`${API_URL}/api/bahan`, {
+          method: "GET",
+          cache: "no-store"
+        });
+
+      const result =
+        await res.json();
+
+      if (!result.success) {
+        throw new Error(
+          result.message || "Gagal mengambil bahan"
+        );
+      }
+
+      allBahan =
+        Array.isArray(result.data)
+          ? result.data
+          : [];
+
+      // Kalau bahan yang sedang dipilih masih ada,
+      // refresh tampilan stoknya.
+      updateStokInfo();
+
+    } catch (err) {
+
+      console.error("loadBahan:", err);
+
+      allBahan = [];
+
+      document.getElementById("formMsg").textContent =
+        "Gagal mengambil data bahan dari server";
+
+      document.getElementById("formMsg").className = "err";
+
     }
 
-    function renderResults(list) {
-      const el = document.getElementById('fBahanResults');
-      if (list.length === 0) {
-        el.innerHTML = '<div class="searchEmpty">Gak ketemu bahan yang cocok</div>';
-        return;
-      }
-      el.innerHTML = list.map(p => `
+  }
+
+
+  // ==========================================================
+  // SEARCH RESULT
+  // ==========================================================
+
+  function renderResults(list) {
+
+    const el =
+      document.getElementById("fBahanResults");
+
+    if (list.length === 0) {
+
+      el.innerHTML =
+        '<div class="searchEmpty">Gak ketemu bahan yang cocok</div>';
+
+      return;
+
+    }
+
+    el.innerHTML =
+      list.map(p => `
         <div class="searchItem" data-sku="${p.sku}">
           <div class="nama">${p.nama}</div>
-          <div class="sub">${p.sku} | Stok: ${p.stok} ${p.satuan}</div>
+          <div class="sub">
+            ${p.sku} | Stok: ${p.stok} ${p.satuan}
+          </div>
         </div>
-      `).join('');
-      el.querySelectorAll('.searchItem').forEach(item => {
-        item.addEventListener('click', () => {
-          const sku = item.dataset.sku;
-          const p = allBahan.find(x => x.sku === sku);
-          selectSku(sku, p ? p.nama : sku);
+      `).join("");
+
+
+    el.querySelectorAll(".searchItem")
+      .forEach(item => {
+
+        item.addEventListener("click", () => {
+
+          const sku =
+            item.dataset.sku;
+
+          const p =
+            allBahan.find(x => x.sku === sku);
+
+          selectSku(
+            sku,
+            p ? p.nama : sku
+          );
+
         });
+
       });
-    }
 
-    function selectSku(sku, label) {
-      selectedSku = sku;
-      document.getElementById('fBahanSearch').value = label;
-      document.getElementById('fBahanResults').classList.add('hidden');
-      updateStokInfo();
-    }
+  }
 
-    const searchInput = document.getElementById('fBahanSearch');
-    const resultsEl = document.getElementById('fBahanResults');
 
-    function refreshResults() {
-      const q = searchInput.value.toLowerCase().trim();
-      const filtered = q === "" ? allBahan : allBahan.filter(p => p.nama.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
-      renderResults(filtered);
-      resultsEl.classList.remove('hidden');
-    }
+  // ==========================================================
+  // PILIH BAHAN
+  // ==========================================================
 
-    searchInput.addEventListener('focus', refreshResults);
-    searchInput.addEventListener('input', () => {
+  function selectSku(sku, label) {
+
+    selectedSku = sku;
+
+    document.getElementById("fBahanSearch").value =
+      label;
+
+    document
+      .getElementById("fBahanResults")
+      .classList.add("hidden");
+
+    updateStokInfo();
+
+  }
+
+
+  // ==========================================================
+  // SEARCH
+  // ==========================================================
+
+  const searchInput =
+    document.getElementById("fBahanSearch");
+
+  const resultsEl =
+    document.getElementById("fBahanResults");
+
+
+  function refreshResults() {
+
+    const q =
+      searchInput.value
+        .toLowerCase()
+        .trim();
+
+    const filtered =
+      q === ""
+        ? allBahan
+        : allBahan.filter(p =>
+            String(p.nama || "")
+              .toLowerCase()
+              .includes(q) ||
+            String(p.sku || "")
+              .toLowerCase()
+              .includes(q)
+          );
+
+    renderResults(filtered);
+
+    resultsEl.classList.remove("hidden");
+
+  }
+
+
+  searchInput.addEventListener(
+    "focus",
+    refreshResults
+  );
+
+
+  searchInput.addEventListener(
+    "input",
+    () => {
+
       selectedSku = "";
+
       refreshResults();
-    });
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.searchWrap')) {
-        resultsEl.classList.add('hidden');
-      }
-    });
 
-    function updateStokInfo() {
-      const info = document.getElementById('stokInfo');
-      const p = allBahan.find(x => x.sku === selectedSku);
-      if (!p) { info.textContent = ''; return; }
-      info.textContent = `Stok saat ini: ${p.stok} ${p.satuan} (Min: ${p.minStok})`;
+    }
+  );
+
+
+  document.addEventListener(
+    "click",
+    e => {
+
+      if (!e.target.closest(".searchWrap")) {
+
+        resultsEl.classList.add("hidden");
+
+      }
+
+    }
+  );
+
+
+  // ==========================================================
+  // INFO STOK
+  // ==========================================================
+
+  function updateStokInfo() {
+
+    const info =
+      document.getElementById("stokInfo");
+
+    const p =
+      allBahan.find(
+        x => x.sku === selectedSku
+      );
+
+    if (!p) {
+
+      info.textContent = "";
+
+      return;
+
     }
 
-    async function stopScanner() {
-      if (html5QrCode) {
-        try {
-          await html5QrCode.stop();
-          await html5QrCode.clear();
-        } catch (e) { /* ignore, may already be stopped */ }
-      }
-      document.getElementById('reader').classList.add('hidden');
-      document.getElementById('btnScan').textContent = '📷 Scan Barcode';
-      scanning = false;
-    }
+    info.textContent =
+      `Stok saat ini: ${p.stok} ${p.satuan} (Min: ${p.minStok})`;
 
-    document.getElementById('btnScan').addEventListener('click', async () => {
-      const readerDiv = document.getElementById('reader');
-      const btnScan = document.getElementById('btnScan');
-      const scanMsg = document.getElementById('scanMsg');
-      scanMsg.textContent = '';
+  }
 
-      if (scanning) {
-        await stopScanner();
-        return;
-      }
 
-      readerDiv.classList.remove('hidden');
-      btnScan.textContent = '⏹️ Stop Scan';
-      await new Promise(r => setTimeout(r, 100));
+  // ==========================================================
+  // BARCODE SCANNER
+  // ==========================================================
 
-      if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("reader");
-      }
+  async function stopScanner() {
+
+    if (html5QrCode) {
 
       try {
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: 220 },
-          (decodedText) => {
-            const match = allBahan.find(p => p.sku.toLowerCase() === decodedText.trim().toLowerCase());
-            if (match) {
-              selectSku(match.sku, match.nama);
-              scanMsg.style.color = '#2e7d32';
-              scanMsg.textContent = `Ketemu: ${match.nama}`;
-              setTimeout(() => { stopScanner(); }, 50);
-            } else {
-              scanMsg.style.color = '#8a7566';
-              scanMsg.textContent = `Kebaca "${decodedText}" (gak cocok), nyoba lagi...`;
-            }
-          },
-          () => { /* ignore per-frame decode error */ }
+
+        await html5QrCode.stop();
+        await html5QrCode.clear();
+
+      } catch (e) {
+        // scanner mungkin sudah berhenti
+      }
+
+    }
+
+    document
+      .getElementById("reader")
+      .classList.add("hidden");
+
+    document
+      .getElementById("btnScan")
+      .textContent =
+        "📷 Scan Barcode";
+
+    scanning = false;
+
+  }
+
+
+  document
+    .getElementById("btnScan")
+    .addEventListener(
+      "click",
+      async () => {
+
+        const readerDiv =
+          document.getElementById("reader");
+
+        const btnScan =
+          document.getElementById("btnScan");
+
+        const scanMsg =
+          document.getElementById("scanMsg");
+
+        scanMsg.textContent = "";
+
+
+        if (scanning) {
+
+          await stopScanner();
+
+          return;
+
+        }
+
+
+        readerDiv.classList.remove("hidden");
+
+        btnScan.textContent =
+          "⏹️ Stop Scan";
+
+
+        await new Promise(
+          r => setTimeout(r, 100)
         );
-        scanning = true;
-        scanMsg.style.color = '#8a7566';
-        scanMsg.textContent = 'Kamera aktif, arahkan ke barcode...';
-      } catch (err) {
-        scanMsg.textContent = 'Gagal akses kamera: ' + err;
-        scanMsg.style.color = '#c62828';
-        readerDiv.classList.add('hidden');
-        btnScan.textContent = '📷 Scan Barcode';
+
+
+        if (!html5QrCode) {
+
+          html5QrCode =
+            new Html5Qrcode("reader");
+
+        }
+
+
+        try {
+
+          await html5QrCode.start(
+
+            { facingMode: "environment" },
+
+            {
+              fps: 10,
+              qrbox: 220
+            },
+
+            decodedText => {
+
+              const barcode =
+                decodedText
+                  .trim()
+                  .toLowerCase();
+
+              const match =
+                allBahan.find(
+                  p =>
+                    String(p.sku)
+                      .toLowerCase() === barcode
+                );
+
+
+              if (match) {
+
+                selectSku(
+                  match.sku,
+                  match.nama
+                );
+
+                scanMsg.style.color =
+                  "#2e7d32";
+
+                scanMsg.textContent =
+                  `Ketemu: ${match.nama}`;
+
+                setTimeout(
+                  () => stopScanner(),
+                  50
+                );
+
+              } else {
+
+                scanMsg.style.color =
+                  "#8a7566";
+
+                scanMsg.textContent =
+                  `Kebaca "${decodedText}" (gak cocok), nyoba lagi...`;
+
+              }
+
+            },
+
+            () => {
+              // decode error per frame → abaikan
+            }
+
+          );
+
+
+          scanning = true;
+
+          scanMsg.style.color =
+            "#8a7566";
+
+          scanMsg.textContent =
+            "Kamera aktif, arahkan ke barcode...";
+
+
+        } catch (err) {
+
+          console.error("Scanner:", err);
+
+          scanMsg.textContent =
+            "Gagal akses kamera";
+
+          scanMsg.style.color =
+            "#c62828";
+
+          readerDiv.classList.add("hidden");
+
+          btnScan.textContent =
+            "📷 Scan Barcode";
+
+          scanning = false;
+
+        }
+
       }
-    });
+    );
 
-    document.getElementById('qtyMinus').addEventListener('click', () => {
-      const el = document.getElementById('fQty');
-      el.value = Math.max(0.1, parseFloat(el.value || '1') - 1);
-    });
-    document.getElementById('qtyPlus').addEventListener('click', () => {
-      const el = document.getElementById('fQty');
-      el.value = parseFloat(el.value || '0') + 1;
-    });
 
-    document.getElementById('btnSubmit').addEventListener('click', async () => {
-      const msgEl = document.getElementById('formMsg');
-      const btn = document.getElementById('btnSubmit');
-      const petugas = getPetugas();
-      const sku = selectedSku;
-      const qty = document.getElementById('fQty').value;
-      const p = allBahan.find(x => x.sku === sku);
+  // ==========================================================
+  // QTY
+  // ==========================================================
 
-      if (!petugas) { msgEl.textContent = 'Sesi login gak valid, coba login ulang'; msgEl.className = 'err'; return; }
-      if (!sku) { msgEl.textContent = 'Pilih bahan dulu'; msgEl.className = 'err'; return; }
-      if (!qty || parseFloat(qty) <= 0) { msgEl.textContent = 'Jumlah harus lebih dari 0'; msgEl.className = 'err'; return; }
+  document
+    .getElementById("qtyMinus")
+    .addEventListener(
+      "click",
+      () => {
 
-      const payload = {
-        action: 'saveTransaksi',
-        data: {
+        const el =
+          document.getElementById("fQty");
+
+        const value =
+          parseFloat(el.value || "1");
+
+        el.value =
+          Math.max(
+            0.1,
+            value - 1
+          ).toString();
+
+      }
+    );
+
+
+  document
+    .getElementById("qtyPlus")
+    .addEventListener(
+      "click",
+      () => {
+
+        const el =
+          document.getElementById("fQty");
+
+        const value =
+          parseFloat(el.value || "0");
+
+        el.value =
+          (value + 1).toString();
+
+      }
+    );
+
+
+  // ==========================================================
+  // SIMPAN TRANSAKSI — D1
+  //
+  // POST /api/transaksi
+  //
+  // BUKAN lagi:
+  // action: saveTransaksi
+  // ==========================================================
+
+  document
+    .getElementById("btnSubmit")
+    .addEventListener(
+      "click",
+      async () => {
+
+        const msgEl =
+          document.getElementById("formMsg");
+
+        const btn =
+          document.getElementById("btnSubmit");
+
+        const petugas =
+          getPetugas();
+
+        const sku =
+          selectedSku;
+
+        const qty =
+          parseFloat(
+            document.getElementById("fQty").value
+          );
+
+        const p =
+          allBahan.find(
+            x => x.sku === sku
+          );
+
+
+        // ------------------------------------------------------
+        // VALIDASI
+        // ------------------------------------------------------
+
+        if (!petugas) {
+
+          msgEl.textContent =
+            "Sesi login gak valid, coba login ulang";
+
+          msgEl.className = "err";
+
+          return;
+
+        }
+
+
+        if (!sku || !p) {
+
+          msgEl.textContent =
+            "Pilih bahan dulu";
+
+          msgEl.className = "err";
+
+          return;
+
+        }
+
+
+        if (
+          !Number.isFinite(qty) ||
+          qty <= 0
+        ) {
+
+          msgEl.textContent =
+            "Jumlah harus lebih dari 0";
+
+          msgEl.className = "err";
+
+          return;
+
+        }
+
+
+        // ------------------------------------------------------
+        // VALIDASI STOK DI FRONTEND
+        // HANYA UNTUK KELUAR / RUSAK
+        // Backend tetap menjadi pengaman utama.
+        // ------------------------------------------------------
+
+        if (
+          currentTipe !== "Masuk" &&
+          qty > Number(p.stok)
+        ) {
+
+          msgEl.textContent =
+            `Stok gak cukup. Tersedia ${p.stok} ${p.satuan}.`;
+
+          msgEl.className = "err";
+
+          return;
+
+        }
+
+
+        // ------------------------------------------------------
+        // PAYLOAD D1
+        // ------------------------------------------------------
+
+        const payload = {
+
           tipe: currentTipe,
-          sku,
-          nama: p ? p.nama : '',
-          qty,
-          satuan: p ? p.satuan : '',
-          keterangan: document.getElementById('fKeterangan').value.trim(),
-          petugas,
-          exp: currentTipe === 'Masuk' ? document.getElementById('fExp').value : '',
-          forceNegative
-        }
-      };
 
-      btn.disabled = true;
-      msgEl.textContent = 'Menyimpan...';
-      msgEl.className = '';
+          sku: sku,
 
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
-        const result = await res.json();
+          nama: p.nama,
 
-        if (result.success) {
-          msgEl.textContent = result.message;
-          msgEl.className = 'ok';
-          document.getElementById('fQty').value = '1';
-          document.getElementById('fKeterangan').value = '';
-          document.getElementById('fExp').value = '';
-          document.getElementById('fBahanSearch').value = '';
-          selectedSku = '';
-          forceNegative = false;
-          await loadBahan();
-          updateStokInfo();
-        } else if (result.stokTersedia !== undefined) {
-          const konfirmasi = confirm(result.message + '\n\nLanjutkan tetap simpan? (stok akan jadi 0)');
-          if (konfirmasi) {
-            forceNegative = true;
-            btn.disabled = false;
-            document.getElementById('btnSubmit').click();
-            return;
-          } else {
-            msgEl.textContent = 'Dibatalkan';
-            msgEl.className = 'err';
+          qty: qty,
+
+          satuan: p.satuan,
+
+          keterangan:
+            document
+              .getElementById("fKeterangan")
+              .value
+              .trim(),
+
+          petugas: petugas,
+
+          exp:
+            currentTipe === "Masuk"
+              ? document
+                  .getElementById("fExp")
+                  .value
+              : ""
+
+        };
+
+
+        btn.disabled = true;
+
+        msgEl.textContent =
+          "Menyimpan...";
+
+        msgEl.className = "";
+
+
+        try {
+
+          const res =
+            await fetch(
+              `${API_URL}/api/transaksi`,
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                body:
+                  JSON.stringify(payload)
+              }
+            );
+
+
+          const result =
+            await res.json();
+
+
+          // ----------------------------------------------------
+          // BERHASIL
+          // ----------------------------------------------------
+
+          if (result.success) {
+
+            msgEl.textContent =
+              result.message ||
+              "Transaksi berhasil disimpan";
+
+            msgEl.className = "ok";
+
+
+            // reset form
+            document
+              .getElementById("fQty")
+              .value = "1";
+
+            document
+              .getElementById("fKeterangan")
+              .value = "";
+
+            document
+              .getElementById("fExp")
+              .value = "";
+
+            document
+              .getElementById("fBahanSearch")
+              .value = "";
+
+            selectedSku = "";
+
+
+            // ambil stok terbaru dari D1
+            await loadBahan();
+
+            updateStokInfo();
+
           }
-        } else {
-          msgEl.textContent = result.message;
-          msgEl.className = 'err';
-        }
-      } catch (err) {
-        msgEl.textContent = 'Gagal terhubung ke server';
-        msgEl.className = 'err';
-      } finally {
-        btn.disabled = false;
-      }
-    });
 
-    loadBahan();
-  </script>
-</Layout>
+
+          // ----------------------------------------------------
+          // GAGAL
+          // ----------------------------------------------------
+
+          else {
+
+            msgEl.textContent =
+              result.message ||
+              result.error ||
+              "Transaksi gagal disimpan";
+
+            msgEl.className = "err";
+
+          }
+
+
+        } catch (err) {
+
+          console.error(
+            "save transaksi:",
+            err
+          );
+
+          msgEl.textContent =
+            "Gagal terhubung ke server";
+
+          msgEl.className = "err";
+
+        } finally {
+
+          btn.disabled = false;
+
+        }
+
+      }
+    );
+
+
+  // ==========================================================
+  // INITIAL LOAD
+  // ==========================================================
+
+  loadBahan();
+
+</script>
