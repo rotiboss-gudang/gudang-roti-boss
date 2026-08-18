@@ -3,25 +3,57 @@
 import Layout from "../layouts/Layout.astro";
 
 <Layout active="riwayat">  <div class="card"><div class="filterRow">
-  <button class="filterBtn active" data-tipe="all">Semua</button>
-  <button class="filterBtn" data-tipe="Masuk">Masuk</button>
-  <button class="filterBtn" data-tipe="Keluar">Keluar</button>
-  <button class="filterBtn" data-tipe="Rusak-Expired">Rusak/Exp</button>
+  <button class="filterBtn active" data-tipe="all">
+    Semua
+  </button>
+
+  <button class="filterBtn" data-tipe="Masuk">
+    Masuk
+  </button>
+
+  <button class="filterBtn" data-tipe="Keluar">
+    Keluar
+  </button>
+
+  <button class="filterBtn" data-tipe="Rusak-Expired">
+    Rusak/Exp
+  </button>
 </div>
+
 
 <div class="dateRow">
-  <div>
-    <label for="startDate">Dari tanggal</label>
-    <input type="date" id="startDate">
-  </div>
 
   <div>
-    <label for="endDate">Sampai tanggal</label>
-    <input type="date" id="endDate">
+    <label for="startDate">
+      Dari tanggal
+    </label>
+
+    <input
+      type="date"
+      id="startDate"
+    />
   </div>
+
+
+  <div>
+    <label for="endDate">
+      Sampai tanggal
+    </label>
+
+    <input
+      type="date"
+      id="endDate"
+    />
+  </div>
+
 </div>
 
-<button id="btnResetDate" class="btn-reset" type="button">
+
+<button
+  id="btnResetDate"
+  class="btn-reset"
+  type="button"
+>
   ✕ Hapus filter tanggal
 </button>
 
@@ -36,170 +68,198 @@ import Layout from "../layouts/Layout.astro";
   </div>  <style is:global>
 
     .filterRow {
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
+
 
     .filterBtn {
-      flex:1;
-      min-width:70px;
-      padding:10px 4px;
-      border:2px solid #eee;
-      background:#fff;
-      border-radius:10px;
-      font-size:.8rem;
-      font-weight:600;
-      color:#8a7566;
-      cursor:pointer;
+      flex: 1;
+      min-width: 70px;
+      padding: 10px 4px;
+      border: 2px solid #eee;
+      background: #fff;
+      border-radius: 10px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: #8a7566;
+      cursor: pointer;
     }
+
 
     .filterBtn.active {
-      border-color:#5c3d2e;
-      color:#5c3d2e;
-      background:#f2ece4;
+      border-color: #5c3d2e;
+      color: #5c3d2e;
+      background: #f2ece4;
     }
+
 
     .dateRow {
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-      margin-top:12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
     }
+
 
     .dateRow label {
-      display:block;
-      font-size:.72rem;
-      color:#8a7566;
-      margin-bottom:4px;
+      display: block;
+      font-size: .72rem;
+      color: #8a7566;
+      margin-bottom: 4px;
     }
+
 
     .dateRow input {
-      width:100%;
-      box-sizing:border-box;
-      padding:8px 10px;
-      border:1px solid #ddd;
-      border-radius:8px;
-      background:#fafafa;
-      font-size:.85rem;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+      font-size: .85rem;
     }
+
 
     .btn-reset {
-      width:100%;
-      margin-top:10px;
-      padding:8px;
-      border:1px solid #ccc;
-      background:#fff;
-      color:#8a7566;
-      border-radius:8px;
-      font-size:.78rem;
-      cursor:pointer;
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      background: #fff;
+      color: #8a7566;
+      border-radius: 8px;
+      font-size: .78rem;
+      cursor: pointer;
     }
+
 
     .trxItem {
-      padding:12px 0;
-      border-bottom:1px solid #eee;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
     }
+
 
     .trxItem:last-child {
-      border-bottom:none;
+      border-bottom: none;
     }
+
 
     .trxItem.cancelled {
-      opacity:.45;
+      opacity: .45;
     }
+
 
     .trxTop {
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
     }
+
 
     .trxNama {
-      font-weight:600;
-      font-size:.92rem;
+      font-weight: 600;
+      font-size: .92rem;
     }
+
 
     .trxMeta {
-      font-size:.75rem;
-      color:#8a7566;
-      margin-top:2px;
+      font-size: .75rem;
+      color: #8a7566;
+      margin-top: 2px;
     }
+
 
     .trxStok {
-      font-size:.8rem;
-      color:#4a2f22;
-      margin-top:5px;
+      font-size: .8rem;
+      color: #4a2f22;
+      margin-top: 5px;
     }
+
 
     .trxTag {
-      font-size:.7rem;
-      padding:3px 9px;
-      border-radius:20px;
-      white-space:nowrap;
-      font-weight:600;
+      font-size: .7rem;
+      padding: 3px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+      font-weight: 600;
     }
+
 
     .trxTag.Masuk {
-      background:#e3f2e3;
-      color:#2e7d32;
+      background: #e3f2e3;
+      color: #2e7d32;
     }
+
 
     .trxTag.Keluar {
-      background:#fdecd2;
-      color:#b5651d;
+      background: #fdecd2;
+      color: #b5651d;
     }
+
 
     .trxTag.Rusak-Expired {
-      background:#fbdcdc;
-      color:#b52a2a;
+      background: #fbdcdc;
+      color: #b52a2a;
     }
+
 
     .btnUndo {
-      margin-top:8px;
-      font-size:.75rem;
-      padding:6px 12px;
-      border:1px solid #c62828;
-      color:#c62828;
-      background:#fff;
-      border-radius:8px;
-      cursor:pointer;
+      margin-top: 8px;
+      font-size: .75rem;
+      padding: 6px 12px;
+      border: 1px solid #c62828;
+      color: #c62828;
+      background: #fff;
+      border-radius: 8px;
+      cursor: pointer;
     }
+
 
     .btnUndo:disabled {
-      opacity:.4;
-      cursor:wait;
+      opacity: .4;
+      cursor: wait;
     }
+
 
     .cancelledTag {
-      font-size:.7rem;
-      color:#c62828;
-      font-weight:600;
-      margin-top:6px;
+      font-size: .7rem;
+      color: #c62828;
+      font-weight: 600;
+      margin-top: 6px;
     }
+
 
     .emptyState {
-      color:#8a7566;
-      font-size:.85rem;
+      color: #8a7566;
+      font-size: .85rem;
     }
+
 
     .errorState {
-      color:#c62828;
-      font-size:.85rem;
+      color: #c62828;
+      font-size: .85rem;
     }
 
-    @media (max-width:420px) {
+
+    @media (max-width: 420px) {
+
       .dateRow {
-        grid-template-columns:1fr;
+        grid-template-columns: 1fr;
       }
+
     }
 
   </style>  <script>
 
-    const API_URL = import.meta.env.PUBLIC_API_URL;
+    const API_URL =
+      import.meta.env.PUBLIC_API_URL;
+
 
     let currentFilter = "all";
+
     let allTransaksi = [];
 
 
@@ -207,40 +267,65 @@ import Layout from "../layouts/Layout.astro";
     // FILTER TIPE
     // ==========================================================
 
-    document.querySelectorAll(".filterBtn").forEach(btn => {
+    document
+      .querySelectorAll(".filterBtn")
+      .forEach(btn => {
 
-      btn.addEventListener("click", () => {
+        btn.addEventListener("click", () => {
 
-        document.querySelectorAll(".filterBtn")
-          .forEach(b => b.classList.remove("active"));
+          document
+            .querySelectorAll(".filterBtn")
+            .forEach(b =>
+              b.classList.remove("active")
+            );
 
-        btn.classList.add("active");
+          btn.classList.add("active");
 
-        currentFilter = btn.dataset.tipe || "all";
+          currentFilter =
+            btn.dataset.tipe || "all";
 
-        renderRiwayat();
+          renderRiwayat();
+
+        });
 
       });
-
-    });
 
 
     // ==========================================================
     // FILTER TANGGAL
     // ==========================================================
 
-    document.getElementById("startDate")
-      .addEventListener("change", renderRiwayat);
+    document
+      .getElementById("startDate")
+      .addEventListener(
+        "change",
+        renderRiwayat
+      );
 
-    document.getElementById("endDate")
-      .addEventListener("change", renderRiwayat);
+
+    document
+      .getElementById("endDate")
+      .addEventListener(
+        "change",
+        renderRiwayat
+      );
 
 
-    document.getElementById("btnResetDate")
+    // ==========================================================
+    // RESET FILTER TANGGAL
+    // ==========================================================
+
+    document
+      .getElementById("btnResetDate")
       .addEventListener("click", () => {
 
-        document.getElementById("startDate").value = "";
-        document.getElementById("endDate").value = "";
+        document
+          .getElementById("startDate")
+          .value = "";
+
+        document
+          .getElementById("endDate")
+          .value = "";
 
         renderRiwayat();
 
@@ -264,14 +349,47 @@ import Layout from "../layouts/Layout.astro";
 
 
     // ==========================================================
-    // ID TRANSAKSI
+    // AMBIL ID TRANSAKSI
     // ==========================================================
 
     function getId(t) {
 
-      return t.idTransaksi ??
-             t.id_transaksi ??
-             "";
+      return (
+        t.id_transaksi ??
+        t.idTransaksi ??
+        ""
+      );
+
+    }
+
+
+    // ==========================================================
+    // AMBIL STOK LAMA
+    // ==========================================================
+
+    function getStokLama(t) {
+
+      return (
+        t.stokLama ??
+        t.stok_lama ??
+        t.stokAwal ??
+        ""
+      );
+
+    }
+
+
+    // ==========================================================
+    // AMBIL STOK AKHIR
+    // ==========================================================
+
+    function getStokAkhir(t) {
+
+      return (
+        t.stokAkhir ??
+        t.stok_akhir ??
+        ""
+      );
 
     }
 
@@ -282,45 +400,70 @@ import Layout from "../layouts/Layout.astro";
 
     function renderRiwayat() {
 
-      const el = document.getElementById("riwayatList");
+      const el =
+        document.getElementById(
+          "riwayatList"
+        );
+
 
       const start =
-        document.getElementById("startDate").value;
+        document.getElementById(
+          "startDate"
+        ).value;
+
 
       const end =
-        document.getElementById("endDate").value;
+        document.getElementById(
+          "endDate"
+        ).value;
 
 
-      let data = allTransaksi.filter(t => {
+      let data =
+        allTransaksi.filter(t => {
 
-        if (
-          currentFilter !== "all" &&
-          t.tipe !== currentFilter
-        ) {
-          return false;
-        }
+          if (
+            currentFilter !== "all" &&
+            t.tipe !== currentFilter
+          ) {
 
+            return false;
 
-        const tanggal =
-          String(t.timestamp || "").slice(0, 10);
-
-
-        if (start && tanggal < start) {
-          return false;
-        }
+          }
 
 
-        if (end && tanggal > end) {
-          return false;
-        }
+          const tanggal =
+            String(
+              t.timestamp || ""
+            ).slice(0, 10);
 
 
-        return true;
+          if (
+            start &&
+            tanggal < start
+          ) {
 
-      });
+            return false;
+
+          }
 
 
-      data = data.slice(0, 50);
+          if (
+            end &&
+            tanggal > end
+          ) {
+
+            return false;
+
+          }
+
+
+          return true;
+
+        });
+
+
+      data =
+        data.slice(0, 50);
 
 
       if (!data.length) {
@@ -336,106 +479,142 @@ import Layout from "../layouts/Layout.astro";
       }
 
 
-      el.innerHTML = data.map(t => {
+      el.innerHTML =
+        data.map(t => {
 
-        const id = getId(t);
-
-        const keterangan =
-          String(t.keterangan || "");
-
-        const cancelled =
-          keterangan.includes("[DIBATALKAN]");
+          const id =
+            getId(t);
 
 
-        const stokLama =
-          t.stokLama ??
-          t.stok_lama ??
-          "";
-
-        const stokAkhir =
-          t.stokAkhir ??
-          t.stok_akhir ??
-          "";
+          const keterangan =
+            String(
+              t.keterangan || ""
+            );
 
 
-        return `
-          <div class="trxItem ${cancelled ? "cancelled" : ""}">
+          const cancelled =
+            keterangan.includes(
+              "[DIBATALKAN]"
+            );
 
-            <div class="trxTop">
 
-              <div>
+          const stokLama =
+            getStokLama(t);
 
-                <div class="trxNama">
-                  ${esc(t.nama)}
+
+          const stokAkhir =
+            getStokAkhir(t);
+
+
+          return `
+
+            <div
+              class="trxItem ${
+                cancelled
+                  ? "cancelled"
+                  : ""
+              }"
+            >
+
+              <div class="trxTop">
+
+                <div>
+
+                  <div class="trxNama">
+                    ${esc(t.nama)}
+                  </div>
+
+
+                  <div class="trxMeta">
+                    ${esc(t.timestamp)}
+                    ${
+                      t.petugas
+                        ? ` | ${esc(t.petugas)}`
+                        : ""
+                    }
+                  </div>
+
                 </div>
 
-                <div class="trxMeta">
-                  ${esc(t.timestamp)}
-                  ${t.petugas ? ` | ${esc(t.petugas)}` : ""}
-                </div>
+
+                <span
+                  class="trxTag ${esc(t.tipe)}"
+                >
+                  ${esc(t.tipe)}
+                </span>
 
               </div>
 
-              <span class="trxTag ${esc(t.tipe)}">
-                ${esc(t.tipe)}
-              </span>
+
+              <div class="trxStok">
+
+                Qty:
+                ${esc(t.qty)}
+                ${esc(t.satuan)}
+
+                |
+
+                Stok:
+                ${esc(stokLama)}
+                →
+                ${esc(stokAkhir)}
+
+              </div>
+
+
+              ${
+                keterangan
+                  ? `
+                    <div class="trxMeta">
+                      ${esc(keterangan)}
+                    </div>
+                  `
+                  : ""
+              }
+
+
+              ${
+                cancelled
+
+                  ? `
+                    <div class="cancelledTag">
+                      ✕ Transaksi ini sudah dibatalkan
+                    </div>
+                  `
+
+                  : `
+                    <button
+                      type="button"
+                      class="btnUndo"
+                      data-id="${esc(id)}"
+                    >
+                      ↩️ Batalkan transaksi ini
+                    </button>
+                  `
+              }
 
             </div>
 
+          `;
 
-            <div class="trxStok">
-              Qty: ${esc(t.qty)}
-              ${esc(t.satuan)}
-              |
-              Stok: ${esc(stokLama)}
-              → ${esc(stokAkhir)}
-            </div>
+        }).join("");
 
 
-            ${
-              keterangan
-                ? `<div class="trxMeta">${esc(keterangan)}</div>`
-                : ""
-            }
-
-
-            ${
-              cancelled
-
-                ? `
-                  <div class="cancelledTag">
-                    ✕ Transaksi ini sudah dibatalkan
-                  </div>
-                `
-
-                : `
-                  <button
-                    type="button"
-                    class="btnUndo"
-                    data-id="${esc(id)}"
-                  >
-                    ↩️ Batalkan transaksi ini
-                  </button>
-                `
-            }
-
-          </div>
-        `;
-
-      }).join("");
-
-
-      el.querySelectorAll(".btnUndo")
+      el
+        .querySelectorAll(".btnUndo")
         .forEach(btn => {
 
-          btn.addEventListener("click", () => {
+          btn.addEventListener(
+            "click",
+            () => {
 
-            undoTransaksi(
-              btn.dataset.id,
-              btn
-            );
+              undoTransaksi(
+                btn.dataset.id,
+                btn
+              );
 
-          });
+            }
+          );
 
         });
 
@@ -449,15 +628,23 @@ import Layout from "../layouts/Layout.astro";
     async function loadRiwayat() {
 
       const el =
-        document.getElementById("riwayatList");
+        document.getElementById(
+          "riwayatList"
+        );
 
-      el.innerHTML = "Memuat...";
+
+      el.innerHTML =
+        "Memuat...";
 
 
       try {
 
         if (!API_URL) {
-          throw new Error("PUBLIC_API_URL belum diset");
+
+          throw new Error(
+            "PUBLIC_API_URL belum diset"
+          );
+
         }
 
 
@@ -471,7 +658,10 @@ import Layout from "../layouts/Layout.astro";
           await res.json();
 
 
-        if (!res.ok || !result.success) {
+        if (
+          !res.ok ||
+          !result.success
+        ) {
 
           throw new Error(
             result.message ||
@@ -482,7 +672,9 @@ import Layout from "../layouts/Layout.astro";
 
 
         allTransaksi =
-          Array.isArray(result.data)
+          Array.isArray(
+            result.data
+          )
             ? result.data
             : [];
 
@@ -509,11 +701,16 @@ import Layout from "../layouts/Layout.astro";
     // BATAL TRANSAKSI
     // ==========================================================
 
-    async function undoTransaksi(id, btn) {
+    async function undoTransaksi(
+      id,
+      btn
+    ) {
 
       if (!id) {
 
-        alert("ID transaksi tidak ditemukan.");
+        alert(
+          "ID transaksi tidak ditemukan."
+        );
 
         return;
 
@@ -523,7 +720,8 @@ import Layout from "../layouts/Layout.astro";
       if (
         !confirm(
           "Batalkan transaksi ini?\n\n" +
-          "Stok akan dikembalikan ke kondisi sebelum transaksi."
+          "Stok akan dikembalikan " +
+          "ke kondisi sebelum transaksi."
         )
       ) {
 
@@ -533,7 +731,9 @@ import Layout from "../layouts/Layout.astro";
 
 
       btn.disabled = true;
-      btn.textContent = "Membatalkan...";
+
+      btn.textContent =
+        "Membatalkan...";
 
 
       try {
@@ -545,7 +745,8 @@ import Layout from "../layouts/Layout.astro";
               method: "POST",
 
               headers: {
-                "Content-Type": "application/json"
+                "Content-Type":
+                  "application/json"
               },
 
               body: JSON.stringify({
@@ -560,7 +761,10 @@ import Layout from "../layouts/Layout.astro";
           await res.json();
 
 
-        if (!res.ok || !result.success) {
+        if (
+          !res.ok ||
+          !result.success
+        ) {
 
           throw new Error(
             result.message ||
@@ -584,10 +788,15 @@ import Layout from "../layouts/Layout.astro";
 
         alert(
           "Gagal: " +
-          (err.message || "Server error")
+          (
+            err.message ||
+            "Server error"
+          )
         );
 
+
         btn.disabled = false;
+
         btn.textContent =
           "↩️ Batalkan transaksi ini";
 
