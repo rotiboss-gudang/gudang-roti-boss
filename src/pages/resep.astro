@@ -2,7 +2,8 @@
 
 import Layout from "../layouts/Layout.astro";
 
-<Layout active="resep">  <div class="card">
+<Layout active="resep">
+  <div class="card">
     <h2 class="sectionTitle">🏭 Produksi</h2><label>Petugas</label>
 <select id="prodPetugas">
   <option value="">Pilih petugas...</option>
@@ -16,33 +17,17 @@ import Layout from "../layouts/Layout.astro";
 <div id="resepPreview"></div>
 
 <label>Jumlah Batch</label>
-
 <div class="qtyRow">
   <button id="batchMinus" class="qtyBtn">−</button>
-
-  <input
-    type="number"
-    id="prodBatch"
-    value="1"
-    min="1"
-    step="1"
-  />
-
+  <input type="number" id="prodBatch" value="1" min="1" step="1" />
   <button id="batchPlus" class="qtyBtn">+</button>
 </div>
 
-<button id="btnProduksi" class="btn-primary">
-  🏭 Produksi Sekarang
-</button>
-
+<button id="btnProduksi" class="btn-primary">🏭 Produksi Sekarang</button>
 <div id="prodMsg"></div>
 
-  </div>  <!-- ===================================================== -->  <!-- TAMBAH RESEP -->  <!-- ===================================================== -->  <div class="card"><h2 class="sectionTitle">
-  ➕ Tambah Bahan ke Resep
-</h2>
-
-<label>Nama Produk</label>
-
+  </div>  <div class="card">
+    <h2 class="sectionTitle">➕ Tambah Bahan ke Resep</h2><label>Nama Produk</label>
 <input
   type="text"
   id="rProduk"
@@ -52,7 +37,6 @@ import Layout from "../layouts/Layout.astro";
 <label>Bahan Baku</label>
 
 <div class="searchWrap">
-
   <input
     type="text"
     id="rBahanSearch"
@@ -64,7 +48,6 @@ import Layout from "../layouts/Layout.astro";
     id="rBahanResults"
     class="searchResults hidden"
   ></div>
-
 </div>
 
 <label>Qty per Batch</label>
@@ -74,7 +57,6 @@ import Layout from "../layouts/Layout.astro";
   id="rQty"
   placeholder="misal: 5"
   step="0.01"
-  min="0"
 />
 
 <button
@@ -86,11 +68,8 @@ import Layout from "../layouts/Layout.astro";
 
 <div id="addMsg"></div>
 
-  </div>  <!-- ===================================================== -->  <!-- DAFTAR RESEP -->  <!-- ===================================================== -->  <div class="card"><h2 class="sectionTitle">
-  🧾 Semua Resep
-</h2>
-
-<div id="resepList">
+  </div>  <div class="card">
+    <h2 class="sectionTitle">🧾 Semua Resep</h2><div id="resepList">
   Memuat...
 </div>
 
@@ -144,7 +123,6 @@ import Layout from "../layouts/Layout.astro";
       padding: 10px 12px;
       border-bottom: 1px solid #f0f0f0;
       font-size: 0.85rem;
-      cursor: pointer;
     }
 
     .searchItem:last-child {
@@ -219,10 +197,10 @@ import Layout from "../layouts/Layout.astro";
       padding: 8px 10px;
     }
 
-    #resepPreview .previewItem {
+    #resepPreview .item {
       display: flex;
       justify-content: space-between;
-      padding: 3px 0;
+      padding: 2px 0;
     }
 
     .resepGroup {
@@ -263,7 +241,6 @@ import Layout from "../layouts/Layout.astro";
     }
 
   </style>  <script>
-
     const API_URL =
       import.meta.env.PUBLIC_API_URL;
 
@@ -272,9 +249,22 @@ import Layout from "../layouts/Layout.astro";
     let selectedBahanSku = "";
 
 
-    // =====================================================
-    // PETUGAS
-    // =====================================================
+    function getPetugas() {
+      try {
+        const s =
+          JSON.parse(
+            localStorage.getItem(
+              "gudangPetugas"
+            ) || "null"
+          );
+
+        return s ? s.nama : "";
+
+      } catch (e) {
+        return "";
+      }
+    }
+
 
     async function loadUsers() {
 
@@ -295,28 +285,31 @@ import Layout from "../layouts/Layout.astro";
 
         sel.innerHTML =
           '<option value="">Pilih petugas...</option>' +
-          users.map(
-            u =>
-              `<option value="${u.nama}">
-                ${u.nama}
-              </option>`
-          ).join("");
+          users
+            .map(
+              u =>
+                `<option value="${u.nama}">${u.nama}</option>`
+            )
+            .join("");
 
       } catch (err) {
 
-        console.log(
-          "Gagal memuat petugas",
-          err
-        );
+        const petugas =
+          getPetugas();
+
+        if (petugas) {
+
+          document.getElementById(
+            "prodPetugas"
+          ).innerHTML =
+            `<option value="${petugas}">${petugas}</option>`;
+
+        }
 
       }
 
     }
 
-
-    // =====================================================
-    // BAHAN — D1
-    // =====================================================
 
     async function loadBahan() {
 
@@ -333,7 +326,7 @@ import Layout from "../layouts/Layout.astro";
         if (!result.success) {
           throw new Error(
             result.message ||
-            "Gagal memuat bahan"
+            "Gagal mengambil bahan"
           );
         }
 
@@ -353,10 +346,6 @@ import Layout from "../layouts/Layout.astro";
 
     }
 
-
-    // =====================================================
-    // RESEP — D1
-    // =====================================================
 
     async function loadResep() {
 
@@ -383,23 +372,26 @@ import Layout from "../layouts/Layout.astro";
         if (!result.success) {
           throw new Error(
             result.message ||
-            "Gagal memuat resep"
+            "Gagal mengambil resep"
           );
         }
 
         const rows =
           result.data || [];
 
+
         /*
-         * Backend D1 mengembalikan bentuk:
+         * API D1 mengembalikan:
          *
-         * {
-         *   produk,
-         *   sku,
-         *   qtyPerBatch
-         * }
+         * [
+         *   {
+         *     produk,
+         *     sku,
+         *     qtyPerBatch
+         *   }
+         * ]
          *
-         * Kita gabungkan menjadi:
+         * Frontend lama membutuhkan:
          *
          * [
          *   {
@@ -409,78 +401,96 @@ import Layout from "../layouts/Layout.astro";
          * ]
          */
 
-        const grouped = {};
+
+        const bahanMap =
+          new Map(
+            allBahan.map(
+              b => [b.sku, b]
+            )
+          );
+
+
+        const groups =
+          new Map();
+
 
         rows.forEach(row => {
 
-          if (!grouped[row.produk]) {
+          if (!groups.has(row.produk)) {
 
-            grouped[row.produk] = {
-              produk: row.produk,
-              bahan: []
-            };
+            groups.set(
+              row.produk,
+              {
+                produk: row.produk,
+                bahan: []
+              }
+            );
 
           }
 
+
           const bahan =
-            allBahan.find(
-              b => b.sku === row.sku
+            bahanMap.get(
+              row.sku
             );
 
-          grouped[row.produk].bahan.push({
 
-            sku: row.sku,
+          groups
+            .get(row.produk)
+            .bahan
+            .push({
 
-            nama:
-              bahan?.nama ||
-              row.sku,
+              sku: row.sku,
 
-            satuan:
-              bahan?.satuan ||
-              "",
+              nama:
+                bahan
+                  ? bahan.nama
+                  : row.sku,
 
-            stokTersedia:
-              Number(
-                bahan?.stok || 0
-              ),
+              satuan:
+                bahan
+                  ? bahan.satuan
+                  : "",
 
-            qtyPerBatch:
-              Number(
-                row.qtyPerBatch || 0
-              )
+              qtyPerBatch:
+                Number(
+                  row.qtyPerBatch
+                ) || 0,
 
-          });
+              stokTersedia:
+                bahan
+                  ? Number(
+                      bahan.stok
+                    ) || 0
+                  : 0
+
+            });
 
         });
 
+
         resepData =
-          Object.values(grouped);
+          Array.from(
+            groups.values()
+          );
 
-
-        // -------------------------------------------------
-        // SELECT PRODUK
-        // -------------------------------------------------
 
         prodSel.innerHTML =
           '<option value="">Pilih resep...</option>' +
-          resepData.map(
-            r =>
-              `<option value="${r.produk}">
-                ${r.produk}
-              </option>`
-          ).join("");
+          resepData
+            .map(
+              r =>
+                `<option value="${r.produk}">${r.produk}</option>`
+            )
+            .join("");
 
-
-        // -------------------------------------------------
-        // LIST RESEP
-        // -------------------------------------------------
 
         if (resepData.length === 0) {
 
           listEl.innerHTML =
-            '<p style="color:#8a7566;font-size:0.85rem;">' +
-            'Belum ada resep. Tambahin dulu di form atas.' +
-            '</p>';
+            '<p style="color:#8a7566;font-size:0.85rem;">Belum ada resep. Tambahin dulu di form atas.</p>';
+
+          updatePreview();
 
           return;
 
@@ -488,46 +498,48 @@ import Layout from "../layouts/Layout.astro";
 
 
         listEl.innerHTML =
-          resepData.map(
-            r => `
+          resepData
+            .map(
+              r => `
 
-              <div class="resepGroup">
+                <div class="resepGroup">
 
-                <div class="resepGroupTitle">
-                  ${r.produk}
+                  <div class="resepGroupTitle">
+                    ${r.produk}
+                  </div>
+
+                  ${r.bahan
+                    .map(
+                      b => `
+
+                        <div class="resepItem">
+
+                          <span>
+                            ${b.nama}
+                            —
+                            ${b.qtyPerBatch}
+                            ${b.satuan}/batch
+                          </span>
+
+                          <button
+                            class="btnDelItem"
+                            data-produk="${r.produk}"
+                            data-sku="${b.sku}"
+                          >
+                            ✕ Hapus
+                          </button>
+
+                        </div>
+
+                      `
+                    )
+                    .join("")}
+
                 </div>
 
-                ${
-                  r.bahan.map(
-                    b => `
-
-                      <div class="resepItem">
-
-                        <span>
-                          ${b.nama}
-                          —
-                          ${b.qtyPerBatch}
-                          ${b.satuan}/batch
-                        </span>
-
-                        <button
-                          class="btnDelItem"
-                          data-produk="${r.produk}"
-                          data-sku="${b.sku}"
-                        >
-                          ✕ Hapus
-                        </button>
-
-                      </div>
-
-                    `
-                  ).join("")
-                }
-
-              </div>
-
-            `
-          ).join("");
+              `
+            )
+            .join("");
 
 
         listEl
@@ -548,6 +560,8 @@ import Layout from "../layouts/Layout.astro";
           });
 
 
+        updatePreview();
+
       } catch (err) {
 
         console.error(
@@ -556,18 +570,12 @@ import Layout from "../layouts/Layout.astro";
         );
 
         listEl.innerHTML =
-          '<p style="color:#c62828;">' +
-          'Gagal memuat resep.' +
-          '</p>';
+          '<p style="color:#c62828;">Gagal memuat resep.</p>';
 
       }
 
     }
 
-
-    // =====================================================
-    // DELETE RESEP — D1
-    // =====================================================
 
     async function deleteItem(
       produk,
@@ -578,9 +586,7 @@ import Layout from "../layouts/Layout.astro";
         !confirm(
           `Hapus bahan ini dari resep "${produk}"?`
         )
-      ) {
-        return;
-      }
+      ) return;
 
 
       try {
@@ -590,18 +596,15 @@ import Layout from "../layouts/Layout.astro";
             `${API_URL}/api/resep`,
             {
               method: "DELETE",
-
               headers: {
                 "Content-Type":
                   "application/json"
               },
-
               body:
                 JSON.stringify({
                   produk,
                   sku
                 })
-
             }
           );
 
@@ -610,28 +613,20 @@ import Layout from "../layouts/Layout.astro";
           await res.json();
 
 
-        if (!result.success) {
+        if (result.success) {
+
+          await loadResep();
+
+        } else {
 
           alert(
             "Gagal: " +
             result.message
           );
 
-          return;
-
         }
 
-
-        await loadResep();
-
-        updatePreview();
-
-
       } catch (err) {
-
-        console.error(
-          err
-        );
 
         alert(
           "Gagal terhubung ke server"
@@ -641,10 +636,6 @@ import Layout from "../layouts/Layout.astro";
 
     }
 
-
-    // =====================================================
-    // SEARCH BAHAN
-    // =====================================================
 
     const bSearch =
       document.getElementById(
@@ -681,25 +672,17 @@ import Layout from "../layouts/Layout.astro";
       ) {
 
         bResults.innerHTML =
-          '<div class="searchItem">' +
-          'Gak ketemu' +
-          '</div>';
+          '<div class="searchItem">Gak ketemu</div>';
 
       } else {
 
         bResults.innerHTML =
-          filtered.map(
-            p =>
-              `
-                <div
-                  class="searchItem"
-                  data-sku="${p.sku}"
-                >
-                  ${p.nama}
-                  (${p.satuan})
-                </div>
-              `
-          ).join("");
+          filtered
+            .map(
+              p =>
+                `<div class="searchItem" data-sku="${p.sku}">${p.nama} (${p.satuan})</div>`
+            )
+            .join("");
 
 
         bResults
@@ -716,7 +699,7 @@ import Layout from "../layouts/Layout.astro";
                   item.dataset.sku;
 
                 bSearch.value =
-                  item.textContent.trim();
+                  item.textContent;
 
                 bResults.classList.add(
                   "hidden"
@@ -774,10 +757,6 @@ import Layout from "../layouts/Layout.astro";
       }
     );
 
-
-    // =====================================================
-    // TAMBAH RESEP — D1
-    // =====================================================
 
     document
       .getElementById(
@@ -839,15 +818,9 @@ import Layout from "../layouts/Layout.astro";
           }
 
 
-          const qtyNumber =
-            Number(qty);
-
-
           if (
-            !Number.isFinite(
-              qtyNumber
-            ) ||
-            qtyNumber <= 0
+            !qty ||
+            parseFloat(qty) <= 0
           ) {
 
             msgEl.textContent =
@@ -884,15 +857,11 @@ import Layout from "../layouts/Layout.astro";
 
                   body:
                     JSON.stringify({
-
                       produk,
-
                       sku:
                         selectedBahanSku,
-
                       qtyPerBatch:
-                        qtyNumber
-
+                        Number(qty)
                     })
 
                 }
@@ -904,57 +873,51 @@ import Layout from "../layouts/Layout.astro";
 
 
             if (
-              !result.success
+              result.success
             ) {
 
               msgEl.textContent =
                 result.message ||
-                "Gagal menyimpan resep";
+                "Resep berhasil ditambahkan";
+
+              msgEl.className =
+                "ok";
+
+
+              document
+                .getElementById(
+                  "rProduk"
+                )
+                .value = "";
+
+              bSearch.value = "";
+
+              document
+                .getElementById(
+                  "rQty"
+                )
+                .value = "";
+
+              selectedBahanSku = "";
+
+
+              await loadResep();
+
+            } else {
+
+              msgEl.textContent =
+                result.message ||
+                "Gagal menambahkan resep";
 
               msgEl.className =
                 "err";
 
-              return;
-
             }
-
-
-            msgEl.textContent =
-              result.message ||
-              "Resep berhasil ditambahkan";
-
-            msgEl.className =
-              "ok";
-
-
-            document
-              .getElementById(
-                "rProduk"
-              )
-              .value = "";
-
-
-            bSearch.value = "";
-
-            document
-              .getElementById(
-                "rQty"
-              )
-              .value = "";
-
-
-            selectedBahanSku =
-              "";
-
-
-            await loadResep();
-
-            updatePreview();
-
 
           } catch (err) {
 
             console.error(
+              "addResep:",
               err
             );
 
@@ -966,17 +929,14 @@ import Layout from "../layouts/Layout.astro";
 
           } finally {
 
-            btn.disabled = false;
+            btn.disabled =
+              false;
 
           }
 
         }
       );
 
-
-    // =====================================================
-    // PREVIEW PRODUKSI
-    // =====================================================
 
     document
       .getElementById(
@@ -1052,16 +1012,19 @@ import Layout from "../layouts/Layout.astro";
     function updatePreview() {
 
       const produk =
-        document.getElementById(
-          "prodProduk"
-        ).value;
-
+        document
+          .getElementById(
+            "prodProduk"
+          )
+          .value;
 
       const batch =
-        Number(
-          document.getElementById(
-            "prodBatch"
-          ).value
+        parseFloat(
+          document
+            .getElementById(
+              "prodBatch"
+            )
+            .value
         ) || 0;
 
 
@@ -1103,36 +1066,23 @@ import Layout from "../layouts/Layout.astro";
 
 
               return `
-
                 <div
-                  class="previewItem"
+                  class="item"
                   style="${
                     cukup
                       ? ""
                       : "color:#c62828;font-weight:700;"
                   }"
                 >
-
-                  <span>
-                    ${b.nama}
-                  </span>
-
+                  <span>${b.nama}</span>
                   <span>
                     ${butuh}
                     /
                     ${b.stokTersedia}
                     ${b.satuan}
-
-                    ${
-                      cukup
-                        ? ""
-                        : " ☠️"
-                    }
-
+                    ${cukup ? "" : "☠️"}
                   </span>
-
                 </div>
-
               `;
 
             }
@@ -1142,13 +1092,13 @@ import Layout from "../layouts/Layout.astro";
     }
 
 
-    // =====================================================
-    // PRODUKSI
-    //
-    // MASIH GAS UNTUK SEKARANG.
-    // JANGAN DIUBAH SEBELUM ROUTE D1 /api/produksi
-    // SUDAH SIAP.
-    // =====================================================
+    /*
+     * PRODUKSI
+     *
+     * SENGAJA BELUM DIPINDAHKAN.
+     * Masih memakai GAS lama supaya
+     * bagian produksi tidak ikut rusak.
+     */
 
     document
       .getElementById(
@@ -1169,19 +1119,25 @@ import Layout from "../layouts/Layout.astro";
             );
 
           const petugas =
-            document.getElementById(
-              "prodPetugas"
-            ).value;
+            document
+              .getElementById(
+                "prodPetugas"
+              )
+              .value;
 
           const produk =
-            document.getElementById(
-              "prodProduk"
-            ).value;
+            document
+              .getElementById(
+                "prodProduk"
+              )
+              .value;
 
           const jumlahBatch =
-            document.getElementById(
-              "prodBatch"
-            ).value;
+            document
+              .getElementById(
+                "prodBatch"
+              )
+              .value;
 
 
           if (!petugas) {
@@ -1214,11 +1170,7 @@ import Layout from "../layouts/Layout.astro";
             !confirm(
               `Produksi "${produk}" x${jumlahBatch} batch? Ini bakal motong stok semua bahan sekaligus.`
             )
-          ) {
-
-            return;
-
-          }
+          ) return;
 
 
           btn.disabled = true;
@@ -1230,15 +1182,6 @@ import Layout from "../layouts/Layout.astro";
 
 
           try {
-
-            /*
-             * Sementara tetap lewat GAS.
-             * Nanti kita pindahkan ke:
-             *
-             * POST /api/produksi
-             *
-             * setelah backend D1 selesai.
-             */
 
             const res =
               await fetch(
@@ -1253,18 +1196,13 @@ import Layout from "../layouts/Layout.astro";
 
                   body:
                     JSON.stringify({
-
                       action:
                         "produksi",
 
                       data: {
-
                         produk,
-
                         jumlahBatch,
-
                         petugas
-
                       }
 
                     })
@@ -1296,7 +1234,6 @@ import Layout from "../layouts/Layout.astro";
                 )
                 .value = "1";
 
-
               await loadBahan();
 
               await loadResep();
@@ -1305,12 +1242,7 @@ import Layout from "../layouts/Layout.astro";
 
             }
 
-
           } catch (err) {
-
-            console.error(
-              err
-            );
 
             msgEl.textContent =
               "Gagal terhubung ke server";
@@ -1320,17 +1252,14 @@ import Layout from "../layouts/Layout.astro";
 
           } finally {
 
-            btn.disabled = false;
+            btn.disabled =
+              false;
 
           }
 
         }
       );
 
-
-    // =====================================================
-    // INIT
-    // =====================================================
 
     async function init() {
 
