@@ -1,4 +1,5 @@
 name = "roti-boss-gudang"
+main = "src/worker.js"
 compatibility_date = "2026-08-18"
 
 [[d1_databases]]
