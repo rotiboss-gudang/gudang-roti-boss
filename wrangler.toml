@@ -5,7 +5,7 @@ compatibility_date = "2026-08-18"
 [[d1_databases]]
 binding = "DB"
 database_name = "roti-boss-gudang"
-database_id = "c987f2e2-c367-4625-b50d-d68922ad459e"
+database_id = "4fac695c-a0c7-4288-9ea3-b3174e3a9220"
 
 [assets]
 directory = "./public"
