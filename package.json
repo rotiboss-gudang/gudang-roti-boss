@@ -9,17 +9,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro",
-    "db:schema": "wrangler d1 execute roti-boss-gudang --file=./db/schema.sql --remote",
-    "db:seed": "wrangler d1 execute roti-boss-gudang --file=./db/seed.sql --remote",
-    "db:schema:local": "wrangler d1 execute roti-boss-gudang --file=./db/schema.sql --local",
-    "db:seed:local": "wrangler d1 execute roti-boss-gudang --file=./db/seed.sql --local",
-    "deploy": "astro build && wrangler deploy"
+    "astro": "astro"
   },
   "dependencies": {
     "astro": "6.4.4"
-  },
-  "devDependencies": {
-    "wrangler": "^4.0.0"
   }
 }
