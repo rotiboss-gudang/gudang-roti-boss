@@ -1,4 +1,4 @@
-name = "roti-boss-gudang"
+name = "gudang-roti-boss-worker"
 main = "src/worker.js"
 compatibility_date = "2026-08-18"
 
