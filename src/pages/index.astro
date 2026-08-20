@@ -81,11 +81,13 @@ async function loadDashboard() {
                 ? "Exp " + p.expired
                 : "Expired";
 
+          const minStok = p.minStok ?? p.min_stok ?? 0;
+
           return (
             '<div class="item">' +
               "<div>" +
                 '<div class="nama">' + p.nama + "</div>" +
-                '<div class="sub">Stok: ' + p.stok + " " + p.satuan + " | Min: " + p.minStok + "</div>" +
+                '<div class="sub">Stok: ' + p.stok + " " + p.satuan + " | Min: " + minStok + "</div>" +
               "</div>" +
               '<span class="tag ' + tagCls + '">' + tagText + "</span>" +
             "</div>"

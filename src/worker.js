@@ -61,8 +61,13 @@ async function saveBahan(request, env) {
     return result.meta?.changes ? json({ success: true, message: "Bahan berhasil diupdate" }) : json({ success: false, message: "SKU tidak ditemukan" }, 404);
   }
   try {
-    await env.DB.prepare(`INSERT INTO bahan (sku,nama,kategori,stok,satuan,min_stok,expired) VALUES (?,?,?,?,?,?,?)`).bind(sku,nama,kategori,stok,satuan,minStok,expired).run();
-    return json({ success: true, message: "Bahan berhasil ditambahkan" }, 201);
+    const id = `MAT-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+    const timestamp = new Date().toISOString();
+    await env.DB.batch([
+      env.DB.prepare(`INSERT INTO bahan (sku,nama,kategori,stok,satuan,min_stok,expired) VALUES (?,?,?,?,?,?,?)`).bind(sku,nama,kategori,stok,satuan,minStok,expired),
+      env.DB.prepare(`INSERT INTO transaksi (id_transaksi,timestamp,tipe,sku,nama,qty,satuan,stok_lama,stok_akhir,keterangan,petugas) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).bind(id,timestamp,"Bahan Baru",sku,nama,stok,satuan,0,stok,"Bahan baru ditambahkan",text(data?.petugas))
+    ]);
+    return json({ success: true, message: "Bahan berhasil ditambahkan", idTransaksi: id }, 201);
   } catch (error) {
     if (String(error?.message).toLowerCase().includes("unique")) return json({ success: false, message: "SKU sudah digunakan" }, 409);
     throw error;
@@ -202,6 +207,7 @@ async function renderReport(url, env) {
   const all = transaksi || [];
   const active = all.filter(r => !String(r.keterangan || "").includes("[DIBATALKAN]"));
   const opname = active.filter(r => r.tipe === "Opname" || String(r.keterangan || "").startsWith("Stock Opname"));
+  const bahanBaru = active.filter(r => r.tipe === "Bahan Baru");
   const masuk = active.filter(r => r.tipe === "Masuk");
   const keluar = active.filter(r => r.tipe === "Keluar" && !String(r.keterangan || "").startsWith("Produksi"));
   const produksi = active.filter(r => r.tipe === "Keluar" && String(r.keterangan || "").startsWith("Produksi"));
@@ -213,6 +219,7 @@ async function renderReport(url, env) {
   const dailyRows = active.filter(r => r.tipe !== "Opname");
   const sections = tipe === "opname" ? reportOpnameSection(allOpnameRows || [], bahan || []) : tipe === "daily" ? [
     reportTotalsSection(dailyRows),
+    reportActivitySection("Bahan Baru", bahanBaru),
     reportActivitySection("Barang Masuk", masuk),
     reportActivitySection("Barang Keluar", keluar),
     reportActivitySection("Produksi", produksi),
@@ -224,6 +231,7 @@ async function renderReport(url, env) {
     reportTotalsSection(active),
     reportListSection("Stok Menipis", low.length ? low.map(b => `${esc(b.nama)} (${fmtNum(b.stok)} ${esc(b.satuan)})`).join("") : emptyBlock("Tidak ada.")),
     reportListSection("Expired / Hampir Expired", expired.length ? expired.map(b => `<li>${esc(b.nama)} — ${esc(b.expired)}</li>`).join("") : emptyBlock("Tidak ada.")),
+    reportActivitySection("Bahan Baru", bahanBaru),
     reportActivitySection("Barang Masuk", masuk),
     reportActivitySection("Barang Keluar", keluar),
     reportActivitySection("Produksi", produksi),
@@ -250,7 +258,7 @@ function fmtNum(value) { const n = Number(value) || 0; return Number.isInteger(n
 function emptyBlock(textValue) { return `<div class="empty">${textValue}</div>`; }
 function reportSummary(bahan, low, expired) { return `<section class="summary"><div class="card"><b>${bahan.length}</b><span>Total Jenis Bahan</span></div><div class="card"><b>${low.length}</b><span>Stok Menipis</span></div><div class="card"><b>${expired.length}</b><span>Expired / Segera</span></div><div class="card"><b>${fmtNum(bahan.reduce((sum, b) => sum + (Number(b.stok) || 0), 0))}</b><span>Total Stok</span></div></section>`; }
 function reportInventorySection(rows) { if (!rows.length) return `<section class="section"><h2>Daftar Inventaris (0)</h2>${emptyBlock("Belum ada bahan.")}</section>`; const body = rows.map((b, i) => { const stok = Number(b.stok) || 0; const min = Number(b.min_stok) || 0; const status = stok <= min ? "Menipis" : b.expired ? "Expired" : "Aman"; return `<tr><td>${i + 1}</td><td>${esc(b.sku)}</td><td>${esc(b.nama)}</td><td>${esc(b.kategori || "-")}</td><td>${fmtNum(stok)}</td><td>${esc(b.satuan)}</td><td>${fmtNum(min)}</td><td>${esc(b.expired || "-")}</td><td>${status}</td></tr>`; }).join(""); return `<section class="section"><h2>Daftar Inventaris (${rows.length})</h2><div class="table-wrap"><table><thead><tr><th>No</th><th>SKU</th><th>Nama Bahan</th><th>Kategori</th><th>Stok</th><th>Satuan</th><th>Min.</th><th>Expired</th><th>Status</th></tr></thead><tbody>${body}</tbody></table></div></section>`; }
-function reportTotalsSection(rows) { const groups = ["Masuk", "Keluar", "Rusak-Expired", "Opname"]; const data = groups.map(tipe => { const subset = rows.filter(r => r.tipe === tipe && !(tipe === "Keluar" && String(r.keterangan || "").startsWith("Produksi"))); return { tipe, count: subset.length, qty: subset.reduce((sum, r) => sum + Math.abs(Number(r.qty) || 0), 0) }; }); const produksi = rows.filter(r => r.tipe === "Keluar" && String(r.keterangan || "").startsWith("Produksi")); data.splice(2, 0, { tipe: "Produksi", count: produksi.length, qty: produksi.reduce((sum, r) => sum + Math.abs(Number(r.qty) || 0), 0) }); return `<section class="section"><h2>Ringkasan Transaksi</h2><div class="table-wrap"><table><thead><tr><th>Jenis</th><th>Jumlah Transaksi</th><th>Total Qty</th></tr></thead><tbody>${data.map(r => `<tr><td>${r.tipe}</td><td>${r.count}</td><td>${fmtNum(r.qty)}</td></tr>`).join("")}<tr class="total-row"><th>Total</th><th>${data.reduce((s, r) => s + r.count, 0)}</th><th>${fmtNum(data.reduce((s, r) => s + r.qty, 0))}</th></tr></tbody></table></div></section>`; }
+function reportTotalsSection(rows) { const groups = ["Bahan Baru", "Masuk", "Keluar", "Rusak-Expired", "Opname"]; const data = groups.map(tipe => { const subset = rows.filter(r => r.tipe === tipe && !(tipe === "Keluar" && String(r.keterangan || "").startsWith("Produksi"))); return { tipe, count: subset.length, qty: subset.reduce((sum, r) => sum + Math.abs(Number(r.qty) || 0), 0) }; }); const produksi = rows.filter(r => r.tipe === "Keluar" && String(r.keterangan || "").startsWith("Produksi")); data.splice(2, 0, { tipe: "Produksi", count: produksi.length, qty: produksi.reduce((sum, r) => sum + Math.abs(Number(r.qty) || 0), 0) }); return `<section class="section"><h2>Ringkasan Transaksi</h2><div class="table-wrap"><table><thead><tr><th>Jenis</th><th>Jumlah Transaksi</th><th>Total Qty</th></tr></thead><tbody>${data.map(r => `<tr><td>${r.tipe}</td><td>${r.count}</td><td>${fmtNum(r.qty)}</td></tr>`).join("")}<tr class="total-row"><th>Total</th><th>${data.reduce((s, r) => s + r.count, 0)}</th><th>${fmtNum(data.reduce((s, r) => s + r.qty, 0))}</th></tr></tbody></table></div></section>`; }
 function reportListSection(title, content) { const list = content.startsWith("<li>") ? `<ul>${content}</ul>` : content; return `<section class="section"><h2>${title}</h2>${list}</section>`; }
 function reportActivitySection(title, rows) { if (!rows.length) return `<section class="section"><h2>${title} (0)</h2>${emptyBlock("Tidak ada.")}</section>`; const total = rows.reduce((sum, r) => sum + Math.abs(Number(r.qty) || 0), 0); const body = rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(formatTime(r.timestamp))}</td><td>${esc(r.nama_bahan)}</td><td>${fmtNum(r.qty)}</td><td>${esc(r.satuan)}</td><td>${esc(r.petugas)}</td><td>${esc(cleanKeterangan(r.keterangan))}</td></tr>`).join(""); return `<section class="section"><h2>${title} (${rows.length})</h2><div class="table-wrap"><table><thead><tr><th>No</th><th>Waktu</th><th>Bahan</th><th>Jumlah</th><th>Satuan</th><th>Petugas</th><th>Keterangan</th></tr></thead><tbody>${body}</tbody><tfoot><tr class="total-row"><th colspan="3">Total</th><th>${fmtNum(total)}</th><th colspan="3">${rows.length} transaksi</th></tr></tfoot></table></div></section>`; }
 function reportOpnameSection(rows, bahanRows) { const latest = new Map(); for (const r of rows || []) { if (!latest.has(r.sku)) latest.set(r.sku, r); } const items = (bahanRows || []).map(b => ({ bahan:b, opname:latest.get(b.sku) || null })); if (!items.length) return `<section class="section"><h2>Stock Opname (0)</h2>${emptyBlock("Belum ada bahan.")}</section>`; let diperiksa=0, sesuai=0; const body = items.map((item, i) => { const b=item.bahan, r=item.opname; if (r) diperiksa++; const sistem = r ? Number(r.stok_awal) : Number(b.stok); const fisik = r ? Number(r.stok_akhir) : null; const selisih = r ? fisik - sistem : null; if (r && selisih === 0) sesuai++; const status = !r ? "Belum Diperiksa" : selisih === 0 ? "Sesuai" : "Selisih"; const keterangan = !r ? "Belum ada hasil opname" : selisih === 0 ? "Tidak ada selisih" : selisih < 0 ? `Kurang ${fmtNum(Math.abs(selisih))} ${esc(b.satuan)}` : `Lebih ${fmtNum(selisih)} ${esc(b.satuan)}`; return `<tr><td>${i + 1}</td><td>${esc(b.sku)}</td><td>${esc(b.nama)}</td><td>${fmtNum(sistem)}</td><td>${fisik === null ? "-" : fmtNum(fisik)}</td><td>${selisih === null ? "-" : `${selisih > 0 ? "+" : ""}${fmtNum(selisih)}`}</td><td>${esc(b.satuan)}</td><td>${status}</td><td>${esc(keterangan)}</td></tr>`; }).join(""); return `<section class="section"><h2>Stock Opname Terakhir (${items.length})</h2><div class="table-wrap"><table><thead><tr><th>No</th><th>SKU</th><th>Bahan</th><th>Sistem</th><th>Fisik</th><th>Selisih</th><th>Satuan</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>${body}</tbody></table></div><p>Snapshot terakhir: ${diperiksa} bahan diperiksa, ${sesuai} sesuai, ${diperiksa - sesuai} memiliki selisih.</p></section>`; }
