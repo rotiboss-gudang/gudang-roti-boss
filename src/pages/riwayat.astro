@@ -349,6 +349,16 @@ import Layout from "../layouts/Layout.astro";
 
     }
 
+    function formatJakartaTime(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value || "-");
+      return date.toLocaleString("id-ID", {
+        timeZone: "Asia/Jakarta",
+        dateStyle: "short",
+        timeStyle: "medium"
+      });
+    }
+
 
     // ==========================================================
     // AMBIL ID TRANSAKSI
@@ -529,7 +539,7 @@ import Layout from "../layouts/Layout.astro";
 
 
                   <div class="trxMeta">
-                    ${esc(t.timestamp)}
+                    ${esc(formatJakartaTime(t.timestamp))}
                     ${
                       t.petugas
                         ? ` | ${esc(t.petugas)}`
