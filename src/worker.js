@@ -84,8 +84,8 @@ async function deleteBahan(request, env) {
 async function getTransaksi(url, env) {
   const clauses = [], args = [];
   const start = url.searchParams.get("startDate"), end = url.searchParams.get("endDate"), tipe = url.searchParams.get("filterTipe");
-  if (start) { clauses.push("date(t.timestamp) >= date(?)"); args.push(start); }
-  if (end) { clauses.push("date(t.timestamp) <= date(?)"); args.push(end); }
+  if (start) { clauses.push("date(t.timestamp,'+7 hours') >= date(?)"); args.push(start); }
+  if (end) { clauses.push("date(t.timestamp,'+7 hours') <= date(?)"); args.push(end); }
   if (tipe && tipe !== "all") { clauses.push("t.tipe = ?"); args.push(tipe); }
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
   const { results } = await env.DB.prepare(`SELECT t.id_transaksi,t.timestamp,t.tipe,t.sku,t.nama,t.nama AS nama_bahan,t.qty,t.satuan,t.stok_lama,t.stok_lama AS stok_awal,t.stok_akhir,t.keterangan,t.petugas,t.id_transaksi AS idTransaksi FROM transaksi t ${where} ORDER BY t.timestamp DESC`).bind(...args).all();
@@ -185,7 +185,7 @@ async function saveProduksi(request, env) {
 async function legacyGet(url, env) {
   const action=url.searchParams.get("action");
   if (action === "getMasterData") { const r=await getBahan(env); return toLegacyArray(r); }
-  if (action === "getDashboardData") { const {results}=await env.DB.prepare("SELECT * FROM bahan ORDER BY nama").all(); const bahan=results||[]; const aman=bahan.filter(b=>Number(b.stok)>Number(b.min_stok) && !b.expired).length; const menipis=bahan.filter(b=>Number(b.stok)<=Number(b.min_stok) && !b.expired).length; const expired=bahan.filter(b=>Boolean(b.expired)).length; const perhatian=bahan.filter(b=>Number(b.stok)<=Number(b.min_stok)||b.expired).map(b=>({...b,status:b.expired?"EXPIRED":"MENIPIS"})); const hari=new Date().toISOString().slice(0,10); const detail=async tipe=>{const {results:r}=await env.DB.prepare("SELECT satuan,SUM(qty) AS qty FROM transaksi WHERE date(timestamp)=date(?) AND tipe=? AND keterangan NOT LIKE 'Produksi [%' AND keterangan NOT LIKE '%[DIBATALKAN]%' GROUP BY satuan ORDER BY satuan").bind(hari,tipe).all(); return r||[];}; const [masukHariIniDetail,keluarHariIniDetail]=await Promise.all([detail("Masuk"),detail("Keluar")]); return json({totalJenis:bahan.length,aman,menipis,expired,masukHariIni:masukHariIniDetail,keluarHariIni:keluarHariIniDetail,masukHariIniDetail,keluarHariIniDetail,perhatian}); }
+  if (action === "getDashboardData") { const {results}=await env.DB.prepare("SELECT * FROM bahan ORDER BY nama").all(); const bahan=results||[]; const aman=bahan.filter(b=>Number(b.stok)>Number(b.min_stok) && !b.expired).length; const menipis=bahan.filter(b=>Number(b.stok)<=Number(b.min_stok) && !b.expired).length; const expired=bahan.filter(b=>Boolean(b.expired)).length; const perhatian=bahan.filter(b=>Number(b.stok)<=Number(b.min_stok)||b.expired).map(b=>({...b,status:b.expired?"EXPIRED":"MENIPIS"})); const detail=async tipe=>{const {results:r}=await env.DB.prepare("SELECT satuan,SUM(qty) AS qty FROM transaksi WHERE date(timestamp,'+7 hours')=date('now','+7 hours') AND tipe=? AND keterangan NOT LIKE 'Produksi [%' AND keterangan NOT LIKE '%[DIBATALKAN]%' GROUP BY satuan ORDER BY satuan").bind(tipe).all(); return r||[];}; const [masukHariIniDetail,keluarHariIniDetail]=await Promise.all([detail("Masuk"),detail("Keluar")]); return json({totalJenis:bahan.length,aman,menipis,expired,masukHariIni:masukHariIniDetail,keluarHariIni:keluarHariIniDetail,masukHariIniDetail,keluarHariIniDetail,perhatian}); }
   if (action === "getRiwayat") { const r=await getTransaksi(url,env); return toLegacyArray(r); }
   if (action === "getUsers") { const {results}=await env.DB.prepare("SELECT email,nama,role FROM users ORDER BY nama").all(); return json(results||[]); }
   return json({success:false,message:"Action tidak ditemukan"},404);

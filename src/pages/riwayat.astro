@@ -365,6 +365,12 @@ import Layout from "../layouts/Layout.astro";
       });
     }
 
+    function jakartaDateKey(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value || "").slice(0, 10);
+      return date.toLocaleString("sv-SE", { timeZone: "Asia/Jakarta" }).slice(0, 10);
+    }
+
 
     // ==========================================================
     // AMBIL ID TRANSAKSI
@@ -451,9 +457,7 @@ import Layout from "../layouts/Layout.astro";
 
 
           const tanggal =
-            String(
-              t.timestamp || ""
-            ).slice(0, 10);
+                          jakartaDateKey(t.timestamp);
 
 
           if (
