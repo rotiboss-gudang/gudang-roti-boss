@@ -29,7 +29,11 @@ import Layout from "../layouts/Layout.astro";
     <h2 class="sectionTitle">➕ Tambah Bahan ke Resep</h2>
 
     <label>Nama Produk</label>
-    <input type="text" id="rProduk" placeholder="misal: Roti Tawar" autocomplete="off" />
+    <select id="rProduk">
+      <option value="">Pilih produk yang sudah ada...</option>
+      <option value="__new__">＋ Tambah produk baru...</option>
+    </select>
+    <input type="text" id="rProdukBaru" placeholder="Nama produk baru, misal: Roti Tawar" autocomplete="off" hidden />
 
     <label>Bahan Baku</label>
     <div class="searchWrap">
@@ -70,12 +74,12 @@ import Layout from "../layouts/Layout.astro";
     #prodMsg.err, #addMsg.err { color: #c62828; font-weight: 600; }
     #resepPreview { font-size: .78rem; color: #8a7566; margin-top: 8px; background: #f9f5f0; border-radius: 8px; padding: 8px 10px; }
     #resepPreview .item { display: flex; justify-content: space-between; padding: 2px 0; gap: 8px; }
-    .resepGroup { margin-bottom: 16px; }
+    .resepGroup { margin-bottom: 16px; padding: 14px; border: 1px solid #eadfd5; border-left: 5px solid #8d5a3b; border-radius: 14px; background: #fffdfb; box-shadow: 0 3px 10px rgba(92,61,46,.08); }
     .resepGroup:last-child { margin-bottom: 0; }
-    .resepGroupTitle { font-weight: 700; font-size: .92rem; margin-bottom: 6px; }
-    .resepItem { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: .82rem; gap: 8px; }
+    .resepGroupTitle { font-weight: 800; font-size: 1rem; color: #5c3d2e; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px solid #eadfd5; }
+    .resepItem { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: .82rem; gap: 8px; }
     .resepItem:last-child { border-bottom: none; }
-    .btnDelItem { color: #c62828; background: none; border: none; font-size: .75rem; padding: 4px 8px; white-space: nowrap; }
+    .btnDelItem { color: #fff; background: #c62828; border: none; border-radius: 8px; font-size: .75rem; padding: 7px 9px; white-space: nowrap; }
   </style>
 
   <script>
@@ -83,6 +87,7 @@ import Layout from "../layouts/Layout.astro";
     let allBahan = [];
     let resepData = [];
     let selectedBahanSku = "";
+    const NEW_PRODUCT = "__new__";
 
     function getPetugas() {
       try {
@@ -141,8 +146,15 @@ import Layout from "../layouts/Layout.astro";
       if (!result.success) throw new Error(result.message || "Gagal mengambil resep");
 
       resepData = groupResep(result.data || []);
+      const currentProduk = document.getElementById("rProduk").value;
       prodSel.innerHTML = '<option value="">Pilih resep...</option>' +
         resepData.map(r => `<option value="${r.produk}">${r.produk}</option>`).join("");
+      const produkSel = document.getElementById("rProduk");
+      produkSel.innerHTML = '<option value="">Pilih produk yang sudah ada...</option>' +
+        resepData.map(r => `<option value="${r.produk}">${r.produk}</option>`).join("") +
+        `<option value="${NEW_PRODUCT}">＋ Tambah produk baru...</option>`;
+      if (currentProduk && [...produkSel.options].some(o => o.value === currentProduk)) produkSel.value = currentProduk;
+      toggleNewProduct();
 
       if (!resepData.length) {
         listEl.innerHTML = '<p style="color:#8a7566;font-size:.85rem;">Belum ada resep. Tambahin dulu di form atas.</p>';
@@ -152,7 +164,7 @@ import Layout from "../layouts/Layout.astro";
 
       listEl.innerHTML = resepData.map(r => `
         <div class="resepGroup">
-          <div class="resepGroupTitle">${r.produk}</div>
+          <div class="resepGroupTitle">🍞 ${r.produk} <span style="font-size:.72rem;font-weight:500;color:#8a7566;">(${r.bahan.length} bahan)</span></div>
           ${r.bahan.map(b => `
             <div class="resepItem">
               <span>${b.nama} — ${b.qtyPerBatch} ${b.satuan}/batch</span>
@@ -213,10 +225,12 @@ import Layout from "../layouts/Layout.astro";
     document.getElementById("btnAddResep").addEventListener("click", async () => {
       const msgEl = document.getElementById("addMsg");
       const btn = document.getElementById("btnAddResep");
-      const produk = document.getElementById("rProduk").value.trim();
+      const produkSelect = document.getElementById("rProduk").value;
+      const produkBaru = document.getElementById("rProdukBaru").value.trim();
+      const produk = produkSelect === NEW_PRODUCT ? produkBaru : produkSelect;
       const qty = Number(document.getElementById("rQty").value);
 
-      if (!produk) return showMsg(msgEl, "Nama produk wajib diisi", false);
+      if (!produk) return showMsg(msgEl, produkSelect === NEW_PRODUCT ? "Nama produk baru wajib diisi" : "Pilih nama produk dulu", false);
       if (!selectedBahanSku) return showMsg(msgEl, "Pilih bahan dari daftar dulu", false);
       if (!Number.isFinite(qty) || qty <= 0) return showMsg(msgEl, "Qty per batch harus lebih dari 0", false);
 
@@ -234,6 +248,8 @@ import Layout from "../layouts/Layout.astro";
 
         showMsg(msgEl, result.message || "Resep berhasil ditambahkan", true);
         document.getElementById("rProduk").value = "";
+        document.getElementById("rProdukBaru").value = "";
+        document.getElementById("rProdukBaru").hidden = true;
         bSearch.value = "";
         document.getElementById("rQty").value = "";
         selectedBahanSku = "";
@@ -244,6 +260,17 @@ import Layout from "../layouts/Layout.astro";
         btn.disabled = false;
       }
     });
+
+    function toggleNewProduct() {
+      const select = document.getElementById("rProduk");
+      const input = document.getElementById("rProdukBaru");
+      const isNew = select.value === NEW_PRODUCT;
+      input.hidden = !isNew;
+      if (!isNew) input.value = "";
+      if (isNew) input.focus();
+    }
+
+    document.getElementById("rProduk").addEventListener("change", toggleNewProduct);
 
     function showMsg(el, text, ok) {
       el.textContent = text;
