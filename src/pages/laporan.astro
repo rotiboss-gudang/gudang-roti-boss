@@ -7,6 +7,7 @@ import Layout from "../layouts/Layout.astro";
     <h2 class="sectionTitle">⚠️ Kondisi Gudang Saat Ini</h2>
     <div class="statGrid" id="statGrid">Memuat...</div>
     <div id="perhatianList"></div>
+    <div id="inventarisBox" class="inventoryReport">Memuat daftar inventaris...</div>
   </div>
 
   <div class="card">
@@ -133,6 +134,14 @@ import Layout from "../layouts/Layout.astro";
       color: #b52a2a;
     }
 
+    .inventoryReport { margin-top: 14px; overflow-x: auto; }
+    .inventoryReport table { width: 100%; border-collapse: collapse; font-size: .72rem; }
+    .inventoryReport th, .inventoryReport td { border: 1px solid #e4ddd7; padding: 6px; text-align: left; white-space: nowrap; }
+    .inventoryReport th { background: #5c3d2e; color: #fff; }
+    .inventoryReport td:nth-child(5), .inventoryReport td:nth-child(7) { text-align: right; }
+    .inventoryReport .statusAman { color: #2e7d32; font-weight: 700; }
+    .inventoryReport .statusWarning { color: #c62828; font-weight: 700; }
+
     label {
       display: block;
       font-size: 0.75rem;
@@ -245,7 +254,7 @@ import Layout from "../layouts/Layout.astro";
 
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL;
-
+    function escHtml(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
     // ==========================================================
     // PETUGAS
@@ -377,11 +386,19 @@ import Layout from "../layouts/Layout.astro";
 
       try {
 
-        const res = await fetch(
-          `${API_URL}?action=getDashboardData`
-        );
-
-        const data = await res.json();
+        const res = await fetch(`${API_URL}/api/bahan?_=${Date.now()}`, { cache: 'no-store' });
+        const payload = await res.json();
+        if (!res.ok || !payload.success) throw new Error(payload.message || 'Gagal mengambil bahan');
+        const bahan = Array.isArray(payload.data) ? payload.data : [];
+        const now = Date.now();
+        const data = {
+          totalJenis: bahan.length,
+          menipis: bahan.filter(b => Number(b.stok) <= Number(b.minStok ?? b.min_stok ?? 0)).length,
+          expired: bahan.filter(b => b.expired && new Date(b.expired).getTime() < now).length,
+          expiredSoon: 0,
+          perhatian: bahan.filter(b => Number(b.stok) <= Number(b.minStok ?? b.min_stok ?? 0) || b.expired).map(b => ({ ...b, status: Number(b.stok) <= Number(b.minStok ?? b.min_stok ?? 0) ? 'MENIPIS' : 'EXPIRED' }))
+        };
+        document.getElementById('inventarisBox').innerHTML = bahan.length ? `<table><thead><tr><th>SKU</th><th>Bahan</th><th>Stok</th><th>Satuan</th><th>Min.</th><th>Expired</th><th>Status</th></tr></thead><tbody>${bahan.map(b => { const min = Number(b.minStok ?? b.min_stok ?? 0); const low = Number(b.stok) <= min; const status = low ? 'Menipis' : b.expired ? 'Expired' : 'Aman'; return `<tr><td>${escHtml(b.sku)}</td><td>${escHtml(b.nama)}</td><td>${escHtml(b.stok)}</td><td>${escHtml(b.satuan)}</td><td>${escHtml(min)}</td><td>${escHtml(b.expired || '-')}</td><td class="${low || b.expired ? 'statusWarning' : 'statusAman'}">${status}</td></tr>`; }).join('')}</tbody></table>` : '<p class="emptyState">Belum ada bahan.</p>';
 
 
         document.getElementById('statGrid').innerHTML = `

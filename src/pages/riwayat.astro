@@ -375,6 +375,7 @@ import Layout from "../layouts/Layout.astro";
         t.stokLama ??
         t.stok_lama ??
         t.stokAwal ??
+        t.stok_awal ??
         ""
       );
 
@@ -523,7 +524,7 @@ import Layout from "../layouts/Layout.astro";
                 <div>
 
                   <div class="trxNama">
-                    ${esc(t.nama)}
+                    ${esc(t.nama_bahan ?? t.nama ?? t.sku ?? "-")}
                   </div>
 
 
@@ -744,7 +745,7 @@ import Layout from "../layouts/Layout.astro";
           await fetch(
             `${API_URL}/api/transaksi`,
             {
-              method: "POST",
+              method: "DELETE",
 
               headers: {
                 "Content-Type":
