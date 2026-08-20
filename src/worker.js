@@ -117,12 +117,12 @@ async function cancelTransaksi(request, env) {
   if (!trx) return json({ success:false, message:"Transaksi tidak ditemukan" },404);
   if (String(trx.keterangan).includes("[DIBATALKAN]")) return json({ success:false, message:"Transaksi sudah dibatalkan" },409);
   const bahan = await env.DB.prepare("SELECT * FROM bahan WHERE sku=?").bind(trx.sku).first();
-  const reverse = trx.tipe === "Masuk" ? -Number(trx.qty) : Number(trx.qty);
+  const stokSebelum = Number(trx.stok_lama ?? trx.stok_awal ?? bahan?.stok ?? 0);
   await env.DB.batch([
-    env.DB.prepare("UPDATE bahan SET stok=stok+? WHERE sku=?").bind(reverse,trx.sku),
+    env.DB.prepare("UPDATE bahan SET stok=? WHERE sku=?").bind(stokSebelum,trx.sku),
     env.DB.prepare("UPDATE transaksi SET keterangan=keterangan || ' [DIBATALKAN]' WHERE id_transaksi=?").bind(text(idTransaksi))
   ]);
-  return json({ success:true, message:"Transaksi dibatalkan", stokTerakhir:bahan ? Number(bahan.stok)+reverse : null });
+  return json({ success:true, message:"Transaksi dibatalkan", stokTerakhir:stokSebelum });
 }
 
 async function saveOpname(data, env) {
@@ -185,7 +185,7 @@ async function saveProduksi(request, env) {
 async function legacyGet(url, env) {
   const action=url.searchParams.get("action");
   if (action === "getMasterData") { const r=await getBahan(env); return toLegacyArray(r); }
-  if (action === "getDashboardData") { const {results}=await env.DB.prepare("SELECT * FROM bahan ORDER BY nama").all(); const now=Date.now(); const perhatian=(results||[]).filter(b=>Number(b.stok)<=Number(b.min_stok)||b.expired).map(b=>({...b,status:Number(b.stok)<=Number(b.min_stok)?"MENIPIS":"EXPIRED"})); return json({totalJenis:(results||[]).length,menipis:(results||[]).filter(b=>Number(b.stok)<=Number(b.min_stok)).length,expired:(results||[]).filter(b=>b.expired && new Date(b.expired).getTime()<now).length,expiredSoon:0,perhatian}); }
+  if (action === "getDashboardData") { const {results}=await env.DB.prepare("SELECT * FROM bahan ORDER BY nama").all(); const bahan=results||[]; const aman=bahan.filter(b=>Number(b.stok)>Number(b.min_stok) && !b.expired).length; const menipis=bahan.filter(b=>Number(b.stok)<=Number(b.min_stok) && !b.expired).length; const expired=bahan.filter(b=>Boolean(b.expired)).length; const perhatian=bahan.filter(b=>Number(b.stok)<=Number(b.min_stok)||b.expired).map(b=>({...b,status:b.expired?"EXPIRED":"MENIPIS"})); const hari=new Date().toISOString().slice(0,10); const detail=async tipe=>{const {results:r}=await env.DB.prepare("SELECT satuan,SUM(qty) AS qty FROM transaksi WHERE date(timestamp)=date(?) AND tipe=? AND keterangan NOT LIKE 'Produksi [%' AND keterangan NOT LIKE '%[DIBATALKAN]%' GROUP BY satuan ORDER BY satuan").bind(hari,tipe).all(); return r||[];}; const [masukHariIniDetail,keluarHariIniDetail]=await Promise.all([detail("Masuk"),detail("Keluar")]); return json({totalJenis:bahan.length,aman,menipis,expired,masukHariIni:masukHariIniDetail,keluarHariIni:keluarHariIniDetail,masukHariIniDetail,keluarHariIniDetail,perhatian}); }
   if (action === "getRiwayat") { const r=await getTransaksi(url,env); return toLegacyArray(r); }
   if (action === "getUsers") { const {results}=await env.DB.prepare("SELECT email,nama,role FROM users ORDER BY nama").all(); return json(results||[]); }
   return json({success:false,message:"Action tidak ditemukan"},404);
