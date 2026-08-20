@@ -57,7 +57,7 @@ async function saveBahan(request, env) {
   if (!sku || !nama || !satuan) return json({ success: false, message: "SKU, nama bahan, dan satuan wajib diisi" }, 400);
   if (!Number.isFinite(stok) || !Number.isFinite(minStok)) return json({ success: false, message: "Stok atau minimum stok tidak valid" }, 400);
   if (mode === "update") {
-    const result = await env.DB.prepare(`UPDATE bahan SET nama=?,kategori=?,stok=?,satuan=?,min_stok=?,expired=?,updated_at=datetime('now') WHERE sku=?`).bind(nama,kategori,stok,satuan,minStok,expired,sku).run();
+    const result = await env.DB.prepare(`UPDATE bahan SET nama=?,kategori=?,stok=?,satuan=?,min_stok=?,expired=? WHERE sku=?`).bind(nama,kategori,stok,satuan,minStok,expired,sku).run();
     return result.meta?.changes ? json({ success: true, message: "Bahan berhasil diupdate" }) : json({ success: false, message: "SKU tidak ditemukan" }, 404);
   }
   try {
@@ -105,7 +105,7 @@ async function saveTransaksi(request, env) {
   const id = `TRX-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
   const ket = text(d.keterangan) || (tipe === "Masuk" && d.exp ? `Expired: ${d.exp}` : "");
   await env.DB.batch([
-    env.DB.prepare("UPDATE bahan SET stok=?, expired=CASE WHEN ? <> '' THEN ? ELSE expired END, updated_at=datetime('now') WHERE sku=?").bind(akhir,text(d.exp),text(d.exp),sku),
+    env.DB.prepare("UPDATE bahan SET stok=?, expired=CASE WHEN ? <> '' THEN ? ELSE expired END WHERE sku=?").bind(akhir,text(d.exp),text(d.exp),sku),
     env.DB.prepare("INSERT INTO transaksi (id_transaksi,timestamp,tipe,sku,nama,qty,satuan,stok_lama,stok_akhir,keterangan,petugas) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(id,new Date().toISOString(),tipe,sku,bahan.nama,qty,satuan || bahan.satuan,Number(bahan.stok),akhir,ket,petugas)
   ]);
   return json({ success:true, message:"Transaksi berhasil disimpan", idTransaksi:id });
@@ -119,7 +119,7 @@ async function cancelTransaksi(request, env) {
   const bahan = await env.DB.prepare("SELECT * FROM bahan WHERE sku=?").bind(trx.sku).first();
   const reverse = trx.tipe === "Masuk" ? -Number(trx.qty) : Number(trx.qty);
   await env.DB.batch([
-    env.DB.prepare("UPDATE bahan SET stok=stok+?, updated_at=datetime('now') WHERE sku=?").bind(reverse,trx.sku),
+    env.DB.prepare("UPDATE bahan SET stok=stok+? WHERE sku=?").bind(reverse,trx.sku),
     env.DB.prepare("UPDATE transaksi SET keterangan=keterangan || ' [DIBATALKAN]' WHERE id_transaksi=?").bind(text(idTransaksi))
   ]);
   return json({ success:true, message:"Transaksi dibatalkan", stokTerakhir:bahan ? Number(bahan.stok)+reverse : null });
@@ -136,7 +136,7 @@ async function saveOpname(data, env) {
     if (!bahan) return json({ success:false, message:`Bahan tidak ditemukan: ${item.sku}` },404);
     const selisih = fisik - Number(bahan.stok);
     const id = `OPN-${Date.now()}-${Math.random().toString(36).slice(2,7)}-${text(item.sku)}`;
-    statements.push(env.DB.prepare("UPDATE bahan SET stok=?,updated_at=datetime('now') WHERE sku=?").bind(fisik,text(item.sku)));
+    statements.push(env.DB.prepare("UPDATE bahan SET stok=? WHERE sku=?").bind(fisik,text(item.sku)));
     statements.push(env.DB.prepare("INSERT INTO transaksi (id_transaksi,timestamp,tipe,sku,nama,qty,satuan,stok_lama,stok_akhir,keterangan,petugas) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(id,new Date().toISOString(),"Opname",text(item.sku),bahan.nama,selisih,bahan.satuan,Number(bahan.stok),fisik,"Stock Opname",petugas));
   }
   await env.DB.batch(statements);
@@ -178,7 +178,7 @@ async function saveProduksi(request, env) {
   if (!results?.length) return json({success:false,message:"Resep produk tidak ditemukan"},404);
   for (const r of results) if (Number(r.stok) < Number(r.qty_per_batch)*batch) return json({success:false,message:`Stok ${r.nama} tidak mencukupi`},400);
   const id=`PRD-${Date.now()}`, statements=[];
-  for (const r of results) { const qty=Number(r.qty_per_batch)*batch; statements.push(env.DB.prepare("UPDATE bahan SET stok=stok-?,updated_at=datetime('now') WHERE sku=?").bind(qty,r.sku)); statements.push(env.DB.prepare("INSERT INTO transaksi (id_transaksi,timestamp,tipe,sku,nama,qty,satuan,stok_lama,stok_akhir,keterangan,petugas) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(`${id}-${r.sku}`,new Date().toISOString(),"Keluar",r.sku,r.nama,qty,r.satuan,r.stok,Number(r.stok)-qty,`Produksi [${id}] ${produk} x${batch}`,petugas)); }
+  for (const r of results) { const qty=Number(r.qty_per_batch)*batch; statements.push(env.DB.prepare("UPDATE bahan SET stok=stok-? WHERE sku=?").bind(qty,r.sku)); statements.push(env.DB.prepare("INSERT INTO transaksi (id_transaksi,timestamp,tipe,sku,nama,qty,satuan,stok_lama,stok_akhir,keterangan,petugas) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(`${id}-${r.sku}`,new Date().toISOString(),"Keluar",r.sku,r.nama,qty,r.satuan,r.stok,Number(r.stok)-qty,`Produksi [${id}] ${produk} x${batch}`,petugas)); }
   await env.DB.batch(statements); return json({success:true,message:`Produksi ${produk} berhasil`});
 }
 
