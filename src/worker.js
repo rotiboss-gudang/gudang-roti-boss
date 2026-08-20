@@ -149,9 +149,13 @@ async function ensureResepTable(env) {
   await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_resep_sku ON resep(sku)").run();
 }
 async function getResep(env) {
-  await ensureResepTable(env);
-  const { results } = await env.DB.prepare("SELECT r.id,r.produk,r.sku,r.qty_per_batch AS qtyPerBatch,b.nama,b.satuan,b.stok FROM resep r LEFT JOIN bahan b ON b.sku=r.sku ORDER BY r.produk,r.id").all();
-  return json({ success:true, data:results || [] });
+  try {
+    await ensureResepTable(env);
+    const { results } = await env.DB.prepare("SELECT r.id,r.produk,r.sku,r.qty_per_batch AS qtyPerBatch,b.nama,b.satuan,b.stok FROM resep r LEFT JOIN bahan b ON b.sku=r.sku ORDER BY r.produk,r.id").all();
+    return json({ success:true, data:results || [] });
+  } catch (error) {
+    return json({ success:false, message: error?.message || "Gagal mengambil resep" }, 500);
+  }
 }
 async function saveResep(request, env) {
   await ensureResepTable(env);
