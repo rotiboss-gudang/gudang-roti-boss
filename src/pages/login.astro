@@ -33,7 +33,7 @@ import Layout from "../layouts/Layout.astro";
   </style>
 
   <script>
-    const API_URL = import.meta.env.PUBLIC_API_URL;
+    const API_URL = import.meta.env.PUBLIC_API_URL || "https://gudang-roti-boss-worker.masbamganteng.workers.dev";
 
     async function loadUsers() {
       try {
