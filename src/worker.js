@@ -143,18 +143,26 @@ async function saveOpname(data, env) {
   return json({ success:true, message:`Opname ${items.length} bahan berhasil disimpan` });
 }
 
+async function ensureResepTable(env) {
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS resep (id INTEGER PRIMARY KEY AUTOINCREMENT, produk TEXT NOT NULL, sku TEXT NOT NULL, qty_per_batch REAL NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE(produk, sku), FOREIGN KEY (sku) REFERENCES bahan(sku) ON UPDATE CASCADE ON DELETE RESTRICT)`).run();
+  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_resep_produk ON resep(produk)").run();
+  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_resep_sku ON resep(sku)").run();
+}
 async function getResep(env) {
+  await ensureResepTable(env);
   const { results } = await env.DB.prepare("SELECT r.id,r.produk,r.sku,r.qty_per_batch AS qtyPerBatch,b.nama,b.satuan,b.stok FROM resep r LEFT JOIN bahan b ON b.sku=r.sku ORDER BY r.produk,r.id").all();
   return json({ success:true, data:results || [] });
 }
 async function saveResep(request, env) {
+  await ensureResepTable(env);
   const d = await request.json(), produk=text(d.produk), sku=text(d.sku), qty=Number(d.qtyPerBatch);
   if (!produk || !sku || !Number.isFinite(qty) || qty <= 0) return json({success:false,message:"Produk, bahan, dan qty wajib valid"},400);
   await env.DB.prepare("INSERT INTO resep (produk,sku,qty_per_batch) VALUES (?,?,?) ON CONFLICT(produk,sku) DO UPDATE SET qty_per_batch=excluded.qty_per_batch,updated_at=datetime('now')").bind(produk,sku,qty).run();
   return json({success:true,message:"Resep berhasil disimpan"});
 }
-async function deleteResep(request, env) { const d=await request.json(); const r=await env.DB.prepare("DELETE FROM resep WHERE produk=? AND sku=?").bind(text(d.produk),text(d.sku)).run(); return json({success:Boolean(r.meta?.changes),message:"Resep dihapus"}); }
+async function deleteResep(request, env) { await ensureResepTable(env); const d=await request.json(); const r=await env.DB.prepare("DELETE FROM resep WHERE produk=? AND sku=?").bind(text(d.produk),text(d.sku)).run(); return json({success:Boolean(r.meta?.changes),message:"Resep dihapus"}); }
 async function saveProduksi(request, env) {
+  await ensureResepTable(env);
   const d=await request.json(), produk=text(d.produk), batch=Number(d.jumlahBatch), petugas=text(d.petugas);
   if (!produk || !Number.isFinite(batch) || batch <= 0) return json({success:false,message:"Produk dan jumlah batch wajib valid"},400);
   const {results}=await env.DB.prepare("SELECT r.*,b.nama,b.satuan,b.stok FROM resep r JOIN bahan b ON b.sku=r.sku WHERE r.produk=?").bind(produk).all();
