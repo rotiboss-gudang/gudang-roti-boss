@@ -79,22 +79,26 @@ import Layout from "../layouts/Layout.astro";
     .filterBtn {
       flex: 1;
       min-width: 70px;
+      min-height: 48px;
       padding: 10px 4px;
-      border: 2px solid #eee;
-      background: #fff;
+      border: 2px solid transparent;
       border-radius: 10px;
       font-size: .8rem;
-      font-weight: 600;
-      color: #8a7566;
+      font-weight: 800;
       cursor: pointer;
+      transition: transform .15s, box-shadow .15s, background .15s;
     }
 
-
-    .filterBtn.active {
-      border-color: #5c3d2e;
-      color: #5c3d2e;
-      background: #f2ece4;
-    }
+    .filterBtn[data-tipe="all"]{background:#e3f2fd;color:#0d47a1;border-color:#90caf9}
+    .filterBtn[data-tipe="Masuk"]{background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7}
+    .filterBtn[data-tipe="Keluar"]{background:#fff3e0;color:#9a4d00;border-color:#ffcc80}
+    .filterBtn[data-tipe="Rusak-Expired"]{background:#ffebee;color:#a51d2d;border-color:#ef9a9a}
+    .filterBtn.active{transform:translateY(-2px) scale(1.03);box-shadow:0 0 0 3px #fff,0 0 0 6px currentColor,0 4px 10px #0002}
+    .filterBtn[data-tipe="all"].active{background:#1565c0;color:#fff;border-color:#0d47a1}
+    .filterBtn[data-tipe="Masuk"].active{background:#2e7d32;color:#fff;border-color:#1b5e20}
+    .filterBtn[data-tipe="Keluar"].active{background:#ef8f00;color:#fff;border-color:#b45f00}
+    .filterBtn[data-tipe="Rusak-Expired"].active{background:#c62828;color:#fff;border-color:#8e0000}
+    .filterBtn:focus-visible,.btn-reset:focus-visible,.btnUndo:focus-visible{outline:3px solid #1565c0;outline-offset:3px}
 
 
     .dateRow {
@@ -127,14 +131,16 @@ import Layout from "../layouts/Layout.astro";
     .btn-reset {
       width: 100%;
       margin-top: 10px;
-      padding: 8px;
-      border: 1px solid #ccc;
-      background: #fff;
-      color: #8a7566;
+      padding: 10px;
+      border: 2px solid #90a4ae;
+      background: #eceff1;
+      color: #37474f;
       border-radius: 8px;
       font-size: .78rem;
+      font-weight: 700;
       cursor: pointer;
     }
+    .btn-reset:active{transform:translateY(1px)}
 
 
     .trxItem {
