@@ -194,10 +194,10 @@ async function legacyPost(request,url,env) { const body=await request.json(); co
 async function toLegacyArray(response) { const body=await response.json(); return json(body.data || body.results || body); }
 async function renderReport(url, env) {
   const tipe = url.searchParams.get("tipe") || "daily";
-  const tanggal = url.searchParams.get("tanggal") || new Date().toISOString().slice(0, 10);
+  const tanggal = url.searchParams.get("tanggal") || new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" });
   const range = reportRange(tipe, tanggal);
   const { results: bahan } = await env.DB.prepare("SELECT * FROM bahan ORDER BY nama COLLATE NOCASE").all();
-  const { results: transaksi } = await env.DB.prepare("SELECT id_transaksi,timestamp,tipe,sku,nama,nama AS nama_bahan,qty,satuan,stok_lama,stok_lama AS stok_awal,stok_akhir,keterangan,petugas FROM transaksi WHERE date(timestamp) >= date(?) AND date(timestamp) <= date(?) ORDER BY timestamp").bind(range.start, range.end).all();
+  const { results: transaksi } = await env.DB.prepare("SELECT id_transaksi,timestamp,tipe,sku,nama,nama AS nama_bahan,qty,satuan,stok_lama,stok_lama AS stok_awal,stok_akhir,keterangan,petugas FROM transaksi WHERE date(timestamp,'+7 hours') >= date(?) AND date(timestamp,'+7 hours') <= date(?) ORDER BY timestamp").bind(range.start, range.end).all();
   const { results: allOpnameRows } = await env.DB.prepare("SELECT id_transaksi,timestamp,tipe,sku,nama,nama AS nama_bahan,qty,satuan,stok_lama,stok_lama AS stok_awal,stok_akhir,keterangan,petugas FROM transaksi WHERE tipe='Opname' ORDER BY timestamp DESC").all();
   const all = transaksi || [];
   const active = all.filter(r => !String(r.keterangan || "").includes("[DIBATALKAN]"));

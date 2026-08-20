@@ -339,6 +339,11 @@ import Layout from "../layouts/Layout.astro";
             return;
           }
 
+          // Transaksi Keluar dari BOM/Produksi ditampilkan terpisah.
+          if (tipeFilter === 'Keluar' && ket.indexOf('Produksi') === 0) {
+            return;
+          }
+
         }
 
 
