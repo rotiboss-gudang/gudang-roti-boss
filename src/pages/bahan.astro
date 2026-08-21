@@ -92,6 +92,15 @@ import Layout from "../layouts/Layout.astro";
     let html5QrCode = null;
     let scanning = false;
 
+    function getPetugas() {
+      try {
+        const data = JSON.parse(localStorage.getItem("gudangPetugas") || "null");
+        return data?.nama || "";
+      } catch {
+        return "";
+      }
+    }
+
     async function apiRequest(path, options = {}) {
       const res = await fetch(`${API_URL}${path}`, {
         ...options,
@@ -281,6 +290,12 @@ import Layout from "../layouts/Layout.astro";
       const msgEl = document.getElementById("formMsg");
       const btn = document.getElementById("btnSubmit");
 
+      if (!getPetugas()) {
+        msgEl.textContent = "Sesi login tidak ditemukan, silakan login ulang";
+        msgEl.className = "err";
+        return;
+      }
+
       if (!nama) {
         msgEl.textContent = "Nama bahan wajib diisi";
         msgEl.className = "err";
@@ -303,7 +318,8 @@ import Layout from "../layouts/Layout.astro";
         stok: Number(document.getElementById("fStokAwal").value) || 0,
         satuan,
         minStok: Number(document.getElementById("fMinStok").value) || 0,
-        expired: document.getElementById("fExp").value.trim() || null
+        expired: document.getElementById("fExp").value.trim() || null,
+        petugas: getPetugas()
       };
 
       btn.disabled = true;

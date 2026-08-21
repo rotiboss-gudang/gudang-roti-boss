@@ -14,7 +14,7 @@ import Layout from "../layouts/Layout.astro";
 
     <div id="resepPreview"></div>
 
-    <label>Jumlah Batch</label>
+    <label>Jumlah Resep</label>
     <div class="qtyRow">
       <button id="batchMinus" class="qtyBtn" type="button">−</button>
       <input type="number" id="prodBatch" value="1" min="1" step="1" />
@@ -167,7 +167,7 @@ import Layout from "../layouts/Layout.astro";
           <div class="resepGroupTitle">🍞 ${r.produk} <span style="font-size:.72rem;font-weight:500;color:#8a7566;">(${r.bahan.length} bahan)</span></div>
           ${r.bahan.map(b => `
             <div class="resepItem">
-              <span>${b.nama} — ${b.qtyPerBatch} ${b.satuan}/batch</span>
+              <span>${b.nama} — ${b.qtyPerBatch} ${b.satuan}/resep</span>
               <button class="btnDelItem" type="button" data-produk="${r.produk}" data-sku="${b.sku}">✕ Hapus</button>
             </div>
           `).join("")}
@@ -232,7 +232,7 @@ import Layout from "../layouts/Layout.astro";
 
       if (!produk) return showMsg(msgEl, produkSelect === NEW_PRODUCT ? "Nama produk baru wajib diisi" : "Pilih nama produk dulu", false);
       if (!selectedBahanSku) return showMsg(msgEl, "Pilih bahan dari daftar dulu", false);
-      if (!Number.isFinite(qty) || qty <= 0) return showMsg(msgEl, "Qty per batch harus lebih dari 0", false);
+      if (!Number.isFinite(qty) || qty <= 0) return showMsg(msgEl, "Qty per resep harus lebih dari 0", false);
 
       btn.disabled = true;
       showMsg(msgEl, "Menyimpan...", null);
@@ -315,8 +315,8 @@ import Layout from "../layouts/Layout.astro";
 
       if (!petugas) return showMsg(msgEl, "Pilih petugas dulu", false);
       if (!produk) return showMsg(msgEl, "Pilih produk dulu", false);
-      if (!Number.isInteger(jumlahBatch) || jumlahBatch < 1) return showMsg(msgEl, "Jumlah batch tidak valid", false);
-      if (!confirm(`Produksi "${produk}" x${jumlahBatch} batch? Ini bakal motong stok semua bahan sekaligus.`)) return;
+      if (!Number.isInteger(jumlahBatch) || jumlahBatch < 1) return showMsg(msgEl, "Jumlah resep tidak valid", false);
+      if (!confirm(`Produksi "${produk}" x${jumlahBatch} resep? Ini bakal motong stok semua bahan sekaligus.`)) return;
 
       btn.disabled = true;
       showMsg(msgEl, "Memproses...", null);
