@@ -7,82 +7,53 @@ import Layout from "../layouts/Layout.astro";
       <h2 style="margin-bottom:16px;text-align:center;">🔐 Login Petugas</h2>
       <label>Nama Petugas</label>
       <select id="lNama"><option value="">Pilih nama...</option></select>
-
       <label>PIN</label>
-      <input type="password" id="lPin" inputmode="numeric" placeholder="PIN kamu" maxlength="6" />
-
-      <button id="btnLogin" class="btn-primary">Masuk</button>
+      <div class="pinRow"><input type="password" id="lPin" inputmode="numeric" placeholder="PIN kamu" maxlength="8" /><button id="togglePin" type="button">Lihat</button></div>
+      <button id="btnLogin" class="btn-primary" type="button">Masuk</button>
       <div id="loginMsg"></div>
     </div>
   </div>
-
   <style is:global>
-    .loginWrap { display: flex; align-items: center; justify-content: center; min-height: 60vh; }
-    .loginCard { width: 100%; max-width: 360px; }
-    label { display: block; font-size: 0.8rem; color: #8a7566; margin: 12px 0 4px; }
-    label:first-of-type { margin-top: 0; }
-    select, input[type="password"] {
-      width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; font-size: 1rem;
-    }
-    .btn-primary {
-      width: 100%; padding: 14px; background: #5c3d2e; color: #fff; border: none; border-radius: 12px; font-weight: 600; margin-top: 16px;
-    }
-    .btn-primary:disabled { opacity: 0.6; }
-    #loginMsg { font-size: 0.85rem; margin-top: 10px; text-align: center; }
-    #loginMsg.err { color: #c62828; }
+    .loginWrap { display:flex; align-items:center; justify-content:center; min-height:60vh; }
+    .loginCard { width:100%; max-width:360px; }
+    label { display:block; font-size:.8rem; color:#8a7566; margin:12px 0 4px; }
+    label:first-of-type { margin-top:0; }
+    select, input[type="password"], input[type="text"] { width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; background:#fafafa; font-size:1rem; }
+    .pinRow { display:flex; gap:8px; align-items:center; }
+    .pinRow input { flex:1; }
+    .pinRow button { padding:12px 10px; border:1px solid #8d5a3b; border-radius:10px; background:#f2ece4; color:#5c3d2e; font-weight:700; }
+    .btn-primary { width:100%; padding:14px; background:#5c3d2e; color:#fff; border:none; border-radius:12px; font-weight:600; margin-top:16px; }
+    .btn-primary:disabled { opacity:.6; }
+    #loginMsg { font-size:.85rem; margin-top:10px; text-align:center; }
+    #loginMsg.err { color:#c62828; }
   </style>
-
   <script>
     const API_URL = import.meta.env.PUBLIC_API_URL || "https://gudang-roti-boss-worker.masbamganteng.workers.dev";
-
     async function loadUsers() {
       try {
         const res = await fetch(`${API_URL}?action=getUsers`);
         const users = await res.json();
-        const sel = document.getElementById('lNama');
-        sel.innerHTML = '<option value="">Pilih nama...</option>' +
-          users.map(u => `<option value="${u.nama}">${u.nama}</option>`).join('');
-      } catch (err) {
-        document.getElementById('lNama').innerHTML = '<option value="">Gagal memuat</option>';
-      }
+        document.getElementById("lNama").innerHTML = '<option value="">Pilih nama...</option>' + users.map(u => `<option value="${u.nama}">${u.nama}</option>`).join("");
+      } catch { document.getElementById("lNama").innerHTML = '<option value="">Gagal memuat</option>'; }
     }
-
-    document.getElementById('btnLogin').addEventListener('click', async () => {
-      const msgEl = document.getElementById('loginMsg');
-      const btn = document.getElementById('btnLogin');
-      const nama = document.getElementById('lNama').value;
-      const pin = document.getElementById('lPin').value;
-
-      if (!nama) { msgEl.textContent = 'Pilih nama dulu'; msgEl.className = 'err'; return; }
-      if (!pin) { msgEl.textContent = 'PIN wajib diisi'; msgEl.className = 'err'; return; }
-
-      btn.disabled = true;
-      msgEl.textContent = 'Memeriksa...';
-      msgEl.className = '';
-
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'loginPetugas', data: { nama, pin } })
-        });
-        const result = await res.json();
-
-        if (result.success) {
-          localStorage.setItem('gudangPetugas', JSON.stringify({ nama: result.nama, role: result.role }));
-          window.location.href = '/';
-        } else {
-          msgEl.textContent = result.message;
-          msgEl.className = 'err';
-          btn.disabled = false;
-        }
-      } catch (err) {
-        msgEl.textContent = 'Gagal terhubung ke server';
-        msgEl.className = 'err';
-        btn.disabled = false;
-      }
+    document.getElementById("togglePin").addEventListener("click", () => {
+      const input = document.getElementById("lPin");
+      input.type = input.type === "password" ? "text" : "password";
+      document.getElementById("togglePin").textContent = input.type === "password" ? "Lihat" : "Sembunyikan";
     });
-
+    document.getElementById("btnLogin").addEventListener("click", async () => {
+      const msgEl = document.getElementById("loginMsg"), btn = document.getElementById("btnLogin");
+      const nama = document.getElementById("lNama").value, pin = document.getElementById("lPin").value;
+      if (!nama) { msgEl.textContent = "Pilih nama dulu"; msgEl.className = "err"; return; }
+      if (!pin) { msgEl.textContent = "PIN wajib diisi"; msgEl.className = "err"; return; }
+      btn.disabled = true; msgEl.textContent = "Memeriksa..."; msgEl.className = "";
+      try {
+        const res = await fetch(API_URL, { method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify({ action:"loginPetugas", data:{ nama, pin } }) });
+        const result = await res.json();
+        if (result.success) { localStorage.setItem("gudangPetugas", JSON.stringify({ nama:result.nama, role:result.role })); window.location.href = "/"; }
+        else { msgEl.textContent = result.message; msgEl.className = "err"; btn.disabled = false; }
+      } catch { msgEl.textContent = "Gagal terhubung ke server"; msgEl.className = "err"; btn.disabled = false; }
+    });
     loadUsers();
   </script>
 </Layout>

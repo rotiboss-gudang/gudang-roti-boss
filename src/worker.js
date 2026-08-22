@@ -12,6 +12,11 @@ export default {
         return json({ success: true, message: "D1 connected", database: result?.ok === 1 });
       }
 
+      if (url.pathname === "/api/users") {
+        if (request.method === "GET") return getUsers(env);
+        if (request.method === "POST") return manageUser(request, env);
+        if (request.method === "DELETE") return deleteUser(request, env);
+      }
       if (url.pathname === "/api/bahan") {
         if (request.method === "GET") return getBahan(env);
         if (request.method === "POST") return saveBahan(request, env);
@@ -46,6 +51,71 @@ export default {
 async function getBahan(env) {
   const { results } = await env.DB.prepare(`SELECT sku,nama,kategori,stok,satuan,min_stok AS minStok,expired FROM bahan ORDER BY nama COLLATE NOCASE ASC`).all();
   return json({ success: true, data: results || [] });
+}
+
+function bytesToHex(bytes) { return [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, "0")).join(""); }
+function hexToBytes(hex) { const out = new Uint8Array(hex.length / 2); for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return out; }
+function safeEqual(a, b) { if (a.length !== b.length) return false; let diff = 0; for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i); return diff === 0; }
+async function hashPin(pin, saltHex) {
+  const salt = saltHex ? hexToBytes(saltHex) : crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 120000, hash: "SHA-256" }, key, 256);
+  return { salt: bytesToHex(salt), hash: bytesToHex(bits) };
+}
+async function verifyPin(user, pin, env) {
+  if (user?.pin_hash && user?.pin_salt) {
+    const calculated = await hashPin(pin, user.pin_salt);
+    return safeEqual(calculated.hash, user.pin_hash);
+  }
+  const valid = safeEqual(text(user?.pin), text(pin));
+  if (valid) {
+    const upgraded = await hashPin(pin);
+    await env.DB.prepare("UPDATE users SET pin_hash=?, pin_salt=?, pin='' WHERE email=?").bind(upgraded.hash, upgraded.salt, user.email).run();
+  }
+  return valid;
+}
+async function requireAdmin(data, env) {
+  const adminNama = text(data?.adminNama), adminPin = text(data?.adminPin);
+  if (!adminNama || !adminPin) return { ok: false, response: json({ success: false, message: "Verifikasi admin wajib diisi" }, 403) };
+  const admin = await env.DB.prepare("SELECT email,nama,role,pin,pin_hash,pin_salt FROM users WHERE nama=? AND role='admin' LIMIT 1").bind(adminNama).first();
+  if (!admin || !(await verifyPin(admin, adminPin, env))) return { ok: false, response: json({ success: false, message: "Verifikasi admin gagal" }, 403) };
+  return { ok: true, admin };
+}
+async function getUsers(env) {
+  const { results } = await env.DB.prepare("SELECT email,nama,role,created_at,updated_at FROM users ORDER BY nama COLLATE NOCASE").all();
+  return json({ success: true, data: results || [] });
+}
+async function manageUser(request, env) {
+  const data = await request.json();
+  const auth = await requireAdmin(data, env);
+  if (!auth.ok) return auth.response;
+  const mode = text(data.mode || "create"), nama = text(data.nama), role = text(data.role || "petugas"), pin = text(data.pin);
+  if (!nama || !["admin", "petugas"].includes(role)) return json({ success: false, message: "Nama dan role wajib valid" }, 400);
+  if (pin && !/^\d{4,8}$/.test(pin)) return json({ success: false, message: "PIN harus 4-8 digit angka" }, 400);
+  if (mode === "create") {
+    if (!pin) return json({ success: false, message: "PIN wajib diisi untuk petugas baru" }, 400);
+    const email = `petugas-${Date.now()}-${Math.random().toString(36).slice(2,7)}@rotiboss.local`;
+    const hashed = await hashPin(pin);
+    try { await env.DB.prepare("INSERT INTO users (email,nama,role,pin,pin_hash,pin_salt) VALUES (?,?,?,'',?,?)").bind(email,nama,role,hashed.hash,hashed.salt).run(); return json({ success: true, message: "Petugas berhasil ditambahkan" }, 201); }
+    catch (e) { if (String(e?.message).toLowerCase().includes("unique")) return json({ success: false, message: "Nama petugas sudah digunakan" }, 409); throw e; }
+  }
+  const email = text(data.email);
+  if (!email) return json({ success: false, message: "Identitas petugas tidak valid" }, 400);
+  if (email === auth.admin.email && role !== "admin") return json({ success: false, message: "Admin yang sedang digunakan harus tetap ber-role admin" }, 400);
+  const hashed = pin ? await hashPin(pin) : null;
+  const result = hashed
+    ? await env.DB.prepare("UPDATE users SET nama=?,role=?,pin='',pin_hash=?,pin_salt=?,updated_at=datetime('now') WHERE email=?").bind(nama,role,hashed.hash,hashed.salt,email).run()
+    : await env.DB.prepare("UPDATE users SET nama=?,role=?,updated_at=datetime('now') WHERE email=?").bind(nama,role,email).run();
+  return result.meta?.changes ? json({ success: true, message: pin ? "Petugas dan PIN berhasil diubah" : "Data petugas berhasil diubah" }) : json({ success: false, message: "Petugas tidak ditemukan" }, 404);
+}
+async function deleteUser(request, env) {
+  const data = await request.json();
+  const auth = await requireAdmin(data, env);
+  if (!auth.ok) return auth.response;
+  const email = text(data.email);
+  if (!email || email === auth.admin.email) return json({ success: false, message: "Admin yang sedang digunakan tidak dapat dihapus" }, 400);
+  const result = await env.DB.prepare("DELETE FROM users WHERE email=?").bind(email).run();
+  return result.meta?.changes ? json({ success: true, message: "Petugas berhasil dihapus" }) : json({ success: false, message: "Petugas tidak ditemukan" }, 404);
 }
 
 async function saveBahan(request, env) {
@@ -195,7 +265,7 @@ async function legacyGet(url, env) {
   if (action === "getUsers") { const {results}=await env.DB.prepare("SELECT email,nama,role FROM users ORDER BY nama").all(); return json(results||[]); }
   return json({success:false,message:"Action tidak ditemukan"},404);
 }
-async function legacyPost(request,url,env) { const body=await request.json(); const action=body?.action, data=body?.data||{}; if(action==="saveOpname") return saveOpname(data,env); if(action==="loginPetugas"){const u=await env.DB.prepare("SELECT nama,role FROM users WHERE nama=? AND pin=?").bind(text(data.nama),text(data.pin)).first(); return u?json({success:true,nama:u.nama,role:u.role}):json({success:false,message:"Nama atau PIN salah"},401);} if(action==="generateLaporan"){const p=new URL(url); p.pathname="/api/laporan/pdf"; p.search=new URLSearchParams({tanggal:text(data.tanggal),tipe:text(data.tipe),petugas:text(data.petugas)}).toString(); return json({success:true,pdfUrl:p.toString()});} return json({success:false,message:"Action tidak ditemukan"},404); }
+async function legacyPost(request,url,env) { const body=await request.json(); const action=body?.action, data=body?.data||{}; if(action==="saveOpname") return saveOpname(data,env); if(action==="loginPetugas"){const u=await env.DB.prepare("SELECT email,nama,role,pin,pin_hash,pin_salt FROM users WHERE nama=? LIMIT 1").bind(text(data.nama)).first(); const valid=u && await verifyPin(u,text(data.pin),env); return valid?json({success:true,nama:u.nama,role:u.role}):json({success:false,message:"Nama atau PIN salah"},401);} if(action==="generateLaporan"){const p=new URL(url); p.pathname="/api/laporan/pdf"; p.search=new URLSearchParams({tanggal:text(data.tanggal),tipe:text(data.tipe),petugas:text(data.petugas)}).toString(); return json({success:true,pdfUrl:p.toString()});} return json({success:false,message:"Action tidak ditemukan"},404); }
 async function toLegacyArray(response) { const body=await response.json(); return json(body.data || body.results || body); }
 async function renderReport(url, env) {
   const tipe = url.searchParams.get("tipe") || "daily";

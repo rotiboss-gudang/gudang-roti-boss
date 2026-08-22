@@ -1,0 +1,107 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+<Layout active="petugas">
+  <div class="card" id="accessDenied" hidden>
+    <h2 class="sectionTitle">👥 Kelola Petugas</h2>
+    <p class="muted">Menu ini hanya dapat digunakan oleh admin.</p>
+  </div>
+
+  <div id="manager" hidden>
+    <div class="card">
+      <h2 class="sectionTitle">🔐 Verifikasi Admin</h2>
+      <p class="muted">PIN admin hanya digunakan untuk verifikasi dan tidak disimpan di browser.</p>
+      <label>Nama Admin</label>
+      <select id="adminNama"><option value="">Pilih admin...</option></select>
+      <label>PIN Admin</label>
+      <div class="pinRow"><input type="password" id="adminPin" inputmode="numeric" maxlength="8" placeholder="PIN admin" /><button class="togglePin" type="button" data-target="adminPin">Lihat</button></div>
+    </div>
+
+    <div class="card">
+      <h2 class="sectionTitle">➕ Tambah / Ubah Petugas</h2>
+      <input type="hidden" id="editEmail" />
+      <label>Nama Petugas</label>
+      <input type="text" id="nama" placeholder="misal: Bambang" autocomplete="off" />
+      <label>Role</label>
+      <select id="role"><option value="petugas">Petugas</option><option value="admin">Admin</option></select>
+      <label>PIN <span class="muted">(4–8 digit; kosongkan saat tidak mengubah PIN)</span></label>
+      <div class="pinRow"><input type="password" id="pin" inputmode="numeric" maxlength="8" placeholder="PIN baru" autocomplete="new-password" /><button class="togglePin" type="button" data-target="pin">Lihat</button></div>
+      <div class="actions"><button id="btnSave" class="btn-primary" type="button">Simpan Petugas</button><button id="btnCancel" class="btn-secondary" type="button" hidden>Batal Edit</button></div>
+      <div id="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="sectionTitle">📋 Daftar Petugas</h2>
+      <div id="userList">Memuat...</div>
+    </div>
+  </div>
+
+  <style is:global>
+    .sectionTitle { margin-bottom: 10px; font-size: 1rem; }
+    label { display:block; font-size:.8rem; color:#8a7566; margin:12px 0 4px; }
+    label:first-of-type { margin-top:0; }
+    input, select { width:100%; padding:11px 12px; border:1px solid #ddd; border-radius:10px; background:#fafafa; box-sizing:border-box; }
+    .pinRow { display:flex; gap:8px; align-items:center; }
+    .pinRow input { flex:1; }
+    .togglePin { min-width:64px; padding:11px 8px; border:1px solid #8d5a3b; border-radius:10px; background:#f2ece4; color:#5c3d2e; font-weight:700; }
+    .actions { display:flex; gap:8px; margin-top:12px; }
+    .btn-primary, .btn-secondary { flex:1; padding:13px 10px; border:0; border-radius:11px; font-weight:700; }
+    .btn-primary { background:#5c3d2e; color:#fff; }
+    .btn-secondary { background:#eee4da; color:#5c3d2e; }
+    .muted { color:#8a7566; font-size:.8rem; }
+    #msg { min-height:20px; margin-top:9px; font-size:.85rem; }
+    #msg.ok { color:#2e7d32; } #msg.err { color:#c62828; font-weight:600; }
+    .userItem { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid #eee; }
+    .userItem:last-child { border-bottom:0; }
+    .userName { font-weight:700; } .userRole { color:#8a7566; font-size:.78rem; margin-top:2px; }
+    .userActions { display:flex; gap:6px; } .userActions button { border:0; border-radius:8px; padding:8px 9px; font-size:.76rem; font-weight:700; }
+    .editBtn { background:#f2ece4; color:#5c3d2e; } .deleteBtn { background:#c62828; color:#fff; }
+  </style>
+
+  <script>
+    const API_URL = import.meta.env.PUBLIC_API_URL || "https://gudang-roti-boss-worker.masbamganteng.workers.dev";
+    let users = [];
+    const $ = id => document.getElementById(id);
+    function session() { try { return JSON.parse(localStorage.getItem("gudangPetugas") || "null"); } catch { return null; } }
+    function showMsg(text, ok = false) { $("msg").textContent = text; $("msg").className = text ? (ok ? "ok" : "err") : ""; }
+    function adminAuth() { return { adminNama: $("adminNama").value, adminPin: $("adminPin").value }; }
+    async function api(path, options = {}) {
+      const res = await fetch(`${API_URL}${path}`, { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Permintaan gagal");
+      return data;
+    }
+    function renderUsers() {
+      $("userList").innerHTML = users.length ? users.map(u => `<div class="userItem"><div><div class="userName">${u.nama}</div><div class="userRole">${u.role === "admin" ? "Admin" : "Petugas"}</div></div><div class="userActions"><button class="editBtn" data-edit="${u.email}">Ubah</button><button class="deleteBtn" data-delete="${u.email}">Hapus</button></div></div>`).join("") : '<p class="muted">Belum ada petugas.</p>';
+      document.querySelectorAll("[data-edit]").forEach(btn => btn.addEventListener("click", () => startEdit(btn.dataset.edit)));
+      document.querySelectorAll("[data-delete]").forEach(btn => btn.addEventListener("click", () => removeUser(btn.dataset.delete)));
+    }
+    async function loadUsers() {
+      const data = await api("/api/users"); users = data.data || [];
+      const admins = users.filter(u => u.role === "admin");
+      $("adminNama").innerHTML = '<option value="">Pilih admin...</option>' + admins.map(u => `<option value="${u.nama}">${u.nama}</option>`).join("");
+      const current = session(); if (current?.role === "admin") $("adminNama").value = current.nama;
+      renderUsers();
+    }
+    function startEdit(email) {
+      const user = users.find(u => u.email === email); if (!user) return;
+      $("editEmail").value = user.email; $("nama").value = user.nama; $("role").value = user.role; $("pin").value = ""; $("btnSave").textContent = "Simpan Perubahan"; $("btnCancel").hidden = false; window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function resetForm() { $("editEmail").value = ""; $("nama").value = ""; $("role").value = "petugas"; $("pin").value = ""; $("btnSave").textContent = "Simpan Petugas"; $("btnCancel").hidden = true; }
+    async function removeUser(email) {
+      const user = users.find(u => u.email === email); if (!user || !confirm(`Hapus petugas ${user.nama}?`)) return;
+      try { showMsg("Memproses..."); await api("/api/users", { method: "DELETE", body: JSON.stringify({ ...adminAuth(), email }) }); showMsg("Petugas berhasil dihapus", true); await loadUsers(); } catch (e) { showMsg(e.message); }
+    }
+    $("btnSave").addEventListener("click", async () => {
+      const nama = $("nama").value.trim(), pin = $("pin").value.trim(), email = $("editEmail").value;
+      if (!$("adminNama").value || !$("adminPin").value) return showMsg("Isi verifikasi admin terlebih dahulu");
+      if (!nama) return showMsg("Nama petugas wajib diisi");
+      if (pin && !/^\d{4,8}$/.test(pin)) return showMsg("PIN harus 4-8 digit angka");
+      try { showMsg("Menyimpan..."); await api("/api/users", { method: "POST", body: JSON.stringify({ ...adminAuth(), mode: email ? "update" : "create", email, nama, role: $("role").value, pin }) }); showMsg(email ? "Data petugas berhasil diubah" : "Petugas berhasil ditambahkan", true); resetForm(); await loadUsers(); } catch (e) { showMsg(e.message); }
+    });
+    $("btnCancel").addEventListener("click", resetForm);
+    document.querySelectorAll(".togglePin").forEach(btn => btn.addEventListener("click", () => { const input = $(btn.dataset.target); input.type = input.type === "password" ? "text" : "password"; btn.textContent = input.type === "password" ? "Lihat" : "Sembunyikan"; }));
+    async function init() { const current = session(); if (current?.role !== "admin") { $("accessDenied").hidden = false; return; } $("manager").hidden = false; try { await loadUsers(); } catch (e) { showMsg(e.message); } }
+    init();
+  </script>
+</Layout>

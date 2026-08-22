@@ -147,6 +147,7 @@ const { active, skipAuth = false } = Astro.props;
       <a href="/resep" class={active === "resep" ? "active" : ""}>🧾 BOM</a>
       <a href="/riwayat" class={active === "riwayat" ? "active" : ""}>📝 Riwayat</a>
       <a href="/laporan" class={active === "laporan" ? "active" : ""}>📈 Laporan</a>
+      <a href="/petugas" id="petugasNav" class={active === "petugas" ? "active" : ""}>👥 Petugas</a>
     </nav>
   )}
 
@@ -160,6 +161,8 @@ const { active, skipAuth = false } = Astro.props;
         try {
           const session = JSON.parse(localStorage.getItem('gudangPetugas') || 'null');
           if (session) {
+            const petugasNav = document.getElementById('petugasNav');
+            if (petugasNav && session.role !== 'admin') petugasNav.style.display = 'none';
             const bar = document.getElementById('sessionBar');
             if (bar) {
               bar.innerHTML = '👤 ' + session.nama + ' &nbsp;·&nbsp; <a href="#" id="logoutLink">Keluar</a>';
