@@ -39,24 +39,11 @@ import Layout from "../layouts/Layout.astro";
     Pilih tanggal acuan, lalu cetak laporan sesuai kebutuhan.
   </p>
 
-  <div class="pdfGrid">
-
-    <button id="btnPdfHarian" class="btn-primary">
-      📄 Laporan Harian
-    </button>
-
-    <button id="btnPdfMingguan" class="btn-primary">
-      📅 Laporan Mingguan
-    </button>
-
-    <button id="btnPdfBulanan" class="btn-primary">
-      🗓️ Laporan Bulanan
-    </button>
-
-    <button id="btnPdfOpname" class="btn-primary">
-      📦 Laporan Stock Opname
-    </button>
-
+  <div class="reportActions">
+    <div class="reportActionRow"><span>📄 Laporan Harian</span><div><button id="btnPdfHarian" class="btn-pdf">PDF</button><button id="btnExcelHarian" class="btn-excel">Excel</button></div></div>
+    <div class="reportActionRow"><span>📅 Laporan Mingguan</span><div><button id="btnPdfMingguan" class="btn-pdf">PDF</button><button id="btnExcelMingguan" class="btn-excel">Excel</button></div></div>
+    <div class="reportActionRow"><span>🗓️ Laporan Bulanan</span><div><button id="btnPdfBulanan" class="btn-pdf">PDF</button><button id="btnExcelBulanan" class="btn-excel">Excel</button></div></div>
+    <div class="reportActionRow"><span>📦 Laporan Stock Opname</span><div><button id="btnPdfOpname" class="btn-pdf">PDF</button><button id="btnExcelOpname" class="btn-excel">Excel</button></div></div>
   </div>
 
   <div id="pdfMsg"></div>
@@ -233,26 +220,19 @@ import Layout from "../layouts/Layout.astro";
       font-weight: 700;
     }
 
-    .pdfGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.pdfGrid .btn-primary {
-  margin: 0;
-}
-
-@media (max-width: 420px) {
-  .pdfGrid {
-    grid-template-columns: 1fr;
-  }
-}
+    .reportActions { display:grid; gap:9px; }
+    .reportActionRow { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px; border:1px solid #eadfd6; border-radius:11px; background:#faf7f3; font-weight:700; font-size:.84rem; }
+    .reportActionRow > div { display:flex; gap:6px; flex-shrink:0; }
+    .btn-pdf, .btn-excel { border:0; border-radius:8px; padding:9px 12px; color:#fff; font-weight:700; }
+    .btn-pdf { background:#7a4b3a; } .btn-excel { background:#217346; }
+    .btn-pdf:disabled, .btn-excel:disabled { opacity:.55; }
+    @media (max-width: 420px) { .reportActionRow { align-items:flex-start; flex-direction:column; } .reportActionRow > div { width:100%; } .btn-pdf, .btn-excel { flex:1; } }
 
   </style>
 
 
   <script>
+    import * as XLSX from 'xlsx';
     const API_URL = import.meta.env.PUBLIC_API_URL || "https://gudang-roti-boss-worker.masbamganteng.workers.dev";
     function escHtml(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -800,6 +780,68 @@ import Layout from "../layouts/Layout.astro";
 
 
 // ==========================================================
+// EXPORT EXCEL
+// ==========================================================
+
+function excelPeriod(reportType, anchor) {
+  const d = new Date(`${anchor}T12:00:00`);
+  if (reportType === 'daily') return { start: anchor, end: anchor, label: anchor };
+  if (reportType === 'monthly') {
+    const start = new Date(d.getFullYear(), d.getMonth(), 1), end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return { start: fmtDate(start), end: fmtDate(end), label: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` };
+  }
+  const day = d.getDay(), diff = day === 0 ? -6 : 1 - day;
+  const start = new Date(d); start.setDate(d.getDate() + diff);
+  const end = new Date(start); end.setDate(start.getDate() + 6);
+  return { start: fmtDate(start), end: fmtDate(end), label: `${fmtDate(start)}-sd-${fmtDate(end)}` };
+}
+
+async function fetchRiwayatRange(start, end) {
+  const res = await fetch(`${API_URL}?action=getRiwayat&filterTipe=all&startDate=${start}&endDate=${end}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (!Array.isArray(data)) throw new Error('Format data transaksi tidak valid');
+  return data;
+}
+
+function downloadWorkbook(wb, filename) {
+  XLSX.writeFile(wb, filename, { bookType: 'xlsx', compression: true });
+}
+
+async function generateExcel(reportType) {
+  const msgEl = document.getElementById('pdfMsg');
+  const anchor = document.getElementById('startDate').value || fmtDate(new Date());
+  const ids = ['btnExcelHarian','btnExcelMingguan','btnExcelBulanan','btnExcelOpname'];
+  ids.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = true; });
+  msgEl.textContent = 'Sedang menyiapkan Excel...'; msgEl.className = '';
+  try {
+    const wb = XLSX.utils.book_new();
+    if (reportType === 'opname') {
+      const [bahanRes, trx] = await Promise.all([fetch(`${API_URL}?action=getMasterData`).then(r => r.json()), fetchRiwayatRange('2000-01-01', '2999-12-31')]);
+      const bahan = Array.isArray(bahanRes) ? bahanRes : [];
+      const latest = new Map();
+      trx.filter(t => String(t.keterangan || '').startsWith('Stock Opname') && !String(t.keterangan || '').includes('[DIBATALKAN]')).forEach(t => { if (!latest.has(t.sku)) latest.set(t.sku, t); });
+      const rows = bahan.map((b, i) => { const r = latest.get(b.sku), sistem = r ? Number(r.stok_awal) : Number(b.stok), fisik = r ? Number(r.stok_akhir) : null, selisih = fisik === null ? null : fisik - sistem; return { No: i + 1, SKU: b.sku, Bahan: b.nama, 'Stok Sistem': sistem, 'Stok Fisik': fisik, Selisih: selisih, Satuan: b.satuan, Status: !r ? 'Belum Diperiksa' : selisih === 0 ? 'Sesuai' : 'Selisih', Keterangan: !r ? 'Belum ada hasil opname' : selisih === 0 ? 'Tidak ada selisih' : selisih < 0 ? `Kurang ${Math.abs(selisih)} ${b.satuan}` : `Lebih ${selisih} ${b.satuan}`, Petugas: r?.petugas || '', Waktu: r?.timestamp || '' }; });
+      const ws = XLSX.utils.json_to_sheet(rows); ws['!cols'] = [6,14,24,14,14,12,12,18,28,18,24].map(w => ({wch:w})); ws['!autofilter'] = { ref: ws['!ref'] }; ws['!freeze'] = { xSplit:0, ySplit:1 }; XLSX.utils.book_append_sheet(wb, ws, 'Hasil Opname Terakhir');
+      downloadWorkbook(wb, 'Laporan-Stock-Opname-Terakhir.xlsx');
+    } else {
+      const period = excelPeriod(reportType, anchor), trx = await fetchRiwayatRange(period.start, period.end), active = trx.filter(t => !String(t.keterangan || '').includes('[DIBATALKAN]'));
+      const summaryTypes = [['Bahan Baru','Bahan Baru'],['Masuk','Masuk'],['Produksi','PRODUKSI'],['Keluar','Keluar'],['Rusak-Expired','Rusak-Expired'],['Opname','Opname']];
+      const summary = summaryTypes.map(([label, type]) => { const rows = type === 'PRODUKSI' ? active.filter(t => String(t.keterangan || '').startsWith('Produksi')) : active.filter(t => t.tipe === type && !(type === 'Keluar' && String(t.keterangan || '').startsWith('Produksi'))); return { Jenis: label, 'Jumlah Entri': rows.length }; });
+      summary.push({ Jenis: 'Total', 'Jumlah Entri': summary.reduce((n, r) => n + r['Jumlah Entri'], 0) });
+      const detail = active.map((t, i) => ({ No: i + 1, Waktu: t.timestamp || '', Tipe: t.tipe || '', SKU: t.sku || '', Bahan: t.nama || t.nama_bahan || '', Jumlah: Number(t.qty) || 0, Satuan: t.satuan || '', Petugas: t.petugas || '', Keterangan: t.keterangan || '' }));
+      const produksi = active.filter(t => String(t.keterangan || '').startsWith('Produksi')).map((t, i) => ({ No: i + 1, Waktu: t.timestamp || '', Bahan: t.nama || '', Jumlah: Number(t.qty) || 0, Satuan: t.satuan || '', Petugas: t.petugas || '', Keterangan: t.keterangan || '' }));
+      const ws1 = XLSX.utils.json_to_sheet([{ Laporan: `Laporan ${reportType === 'daily' ? 'Harian' : reportType === 'weekly' ? 'Mingguan' : 'Bulanan'}` }, { Periode: `${period.start} s/d ${period.end}` }, {}, ...summary]); ws1['!cols'] = [{wch:24},{wch:18}]; XLSX.utils.book_append_sheet(wb, ws1, 'Ringkasan');
+      const ws2 = XLSX.utils.json_to_sheet(detail); ws2['!cols'] = [6,24,16,14,26,12,12,18,36].map(w => ({wch:w})); ws2['!autofilter'] = { ref: ws2['!ref'] }; ws2['!freeze'] = { xSplit:0, ySplit:1 }; XLSX.utils.book_append_sheet(wb, ws2, 'Detail Transaksi');
+      const ws3 = XLSX.utils.json_to_sheet(produksi); ws3['!cols'] = [6,24,26,12,12,18,36].map(w => ({wch:w})); ws3['!autofilter'] = { ref: ws3['!ref'] }; ws3['!freeze'] = { xSplit:0, ySplit:1 }; XLSX.utils.book_append_sheet(wb, ws3, 'Pemakaian Produksi');
+      downloadWorkbook(wb, `Laporan-${reportType === 'daily' ? 'Harian' : reportType === 'weekly' ? 'Mingguan' : 'Bulanan'}-${period.label}.xlsx`);
+    }
+    msgEl.textContent = 'Excel berhasil diunduh.'; msgEl.className = 'ok';
+  } catch (err) { console.error('ERROR generateExcel:', err); msgEl.textContent = `Gagal membuat Excel: ${err.message}`; msgEl.className = 'err'; }
+  finally { ids.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = false; }); }
+}
+
+// ==========================================================
 // GENERATE PDF
 // ==========================================================
 
@@ -961,12 +1003,11 @@ document
     () => generatePdf('monthly')
   );
 
-document
-  .getElementById('btnPdfOpname')
-  .addEventListener(
-    'click',
-    () => generatePdf('opname')
-  );
+document.getElementById('btnPdfOpname').addEventListener('click', () => generatePdf('opname'));
+document.getElementById('btnExcelHarian').addEventListener('click', () => generateExcel('daily'));
+document.getElementById('btnExcelMingguan').addEventListener('click', () => generateExcel('weekly'));
+document.getElementById('btnExcelBulanan').addEventListener('click', () => generateExcel('monthly'));
+document.getElementById('btnExcelOpname').addEventListener('click', () => generateExcel('opname'));
 
 
 // ==========================================================
