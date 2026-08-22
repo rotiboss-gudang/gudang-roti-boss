@@ -69,8 +69,12 @@ async function verifyPin(user, pin, env) {
   }
   const valid = safeEqual(text(user?.pin), text(pin));
   if (valid) {
-    const upgraded = await hashPin(pin);
-    await env.DB.prepare("UPDATE users SET pin_hash=?, pin_salt=?, pin='' WHERE email=?").bind(upgraded.hash, upgraded.salt, user.email).run();
+    try {
+      const upgraded = await hashPin(pin);
+      await env.DB.prepare("UPDATE users SET pin_hash=?, pin_salt=?, pin='' WHERE email=?").bind(upgraded.hash, upgraded.salt, user.email).run();
+    } catch (error) {
+      console.error("Gagal migrasi hash PIN lama; login tetap diizinkan:", error);
+    }
   }
   return valid;
 }
