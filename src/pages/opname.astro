@@ -14,6 +14,7 @@ import Layout from "../layouts/Layout.astro";
       👤 Petugas:
       <strong id="petugasName">-</strong>
     </div>
+    <div id="readonlyNotice" class="readonlyNotice" hidden>🔒 Mode lihat saja. Hanya Admin/SU yang dapat mengubah dan menyimpan hasil opname.</div>
 
     <label for="searchBox">
       Cari bahan (opsional)
@@ -62,6 +63,8 @@ import Layout from "../layouts/Layout.astro";
 
 
   <style is:global>
+
+    .readonlyNotice { background:#fff3e0; color:#9a4d00; border:1px solid #ffcc80; border-radius:10px; padding:10px 12px; font-size:.82rem; margin-top:8px; }
 
     .petugasBox {
       background: #f9f5f0;
@@ -208,6 +211,10 @@ import Layout from "../layouts/Layout.astro";
     // PETUGAS
     // =====================================================
 
+    function getSession() {
+      try { return JSON.parse(localStorage.getItem('gudangPetugas') || 'null'); } catch { return null; }
+    }
+
     function getPetugas() {
 
       try {
@@ -230,10 +237,14 @@ import Layout from "../layouts/Layout.astro";
     }
 
 
-    document
-      .getElementById('petugasName')
-      .textContent =
-        getPetugas() || '-';
+    const currentSession = getSession();
+    const isAdmin = currentSession?.role === 'admin';
+    document.getElementById('petugasName').textContent = currentSession?.nama || '-';
+    if (!isAdmin) {
+      document.getElementById('readonlyNotice').hidden = false;
+      document.getElementById('btnSubmit').disabled = true;
+      document.getElementById('btnSubmit').title = 'Hanya Admin yang dapat menyimpan opname';
+    }
 
 
     // =====================================================
@@ -312,6 +323,7 @@ import Layout from "../layouts/Layout.astro";
                 step="0.1"
                 min="0"
                 inputmode="decimal"
+                ${isAdmin ? '' : 'readonly aria-readonly="true"'}
               />
 
             </div>
@@ -586,6 +598,8 @@ import Layout from "../layouts/Layout.astro";
               'btnSubmit'
             );
 
+
+          if (!isAdmin) return;
 
           const petugas =
             getPetugas();

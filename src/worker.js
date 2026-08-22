@@ -207,6 +207,8 @@ async function cancelTransaksi(request, env) {
 async function saveOpname(data, env) {
   const petugas = text(data?.petugas), items = Array.isArray(data?.items) ? data.items : [];
   if (!petugas || !items.length) return json({ success:false, message:"Petugas dan item opname wajib diisi" },400);
+  const operator = await env.DB.prepare("SELECT role FROM users WHERE nama=? LIMIT 1").bind(petugas).first();
+  if (!operator || operator.role !== "admin") return json({ success:false, message:"Mode read-only: hanya Admin yang dapat menyimpan Opname" },403);
   const statements = [];
   for (const item of items) {
     const fisik = Number(item.stokFisik);
