@@ -1,0 +1,34 @@
+name: Backup D1 Database
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Export database D1
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare backup directory
+        run: mkdir -p backup
+
+      - name: Export D1 database
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 export roti-boss-gudang --remote --output=backup/roti-boss-d1-${{ github.run_id }}.sql --config wrangler.toml
+
+      - name: Upload SQL backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: roti-boss-d1-backup-${{ github.run_number }}
+          path: backup/roti-boss-d1-${{ github.run_id }}.sql
+          if-no-files-found: error
+          retention-days: 90
