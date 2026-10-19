@@ -62,13 +62,13 @@ async function hashPin(pin, saltHex) {
   const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 120000, hash: "SHA-256" }, key, 256);
   return { salt: bytesToHex(salt), hash: bytesToHex(bits) };
 }
-async function verifyPin(user, pin, env) {
+async function verifyPin(user, pin, env, upgradeLegacy = true) {
   if (user?.pin_hash && user?.pin_salt) {
     const calculated = await hashPin(pin, user.pin_salt);
     return safeEqual(calculated.hash, user.pin_hash);
   }
   const valid = safeEqual(text(user?.pin), text(pin));
-  if (valid) {
+  if (valid && upgradeLegacy) {
     try {
       const upgraded = await hashPin(pin);
       await env.DB.prepare("UPDATE users SET pin_hash=?, pin_salt=?, pin='' WHERE email=?").bind(upgraded.hash, upgraded.salt, user.email).run();
@@ -82,7 +82,10 @@ async function requireAdmin(data, env) {
   const adminNama = text(data?.adminNama), adminPin = text(data?.adminPin);
   if (!adminNama || !adminPin) return { ok: false, response: json({ success: false, message: "Verifikasi admin wajib diisi" }, 403) };
   const admin = await env.DB.prepare("SELECT email,nama,role,pin,pin_hash,pin_salt FROM users WHERE nama=? AND role='admin' LIMIT 1").bind(adminNama).first();
-  if (!admin || !(await verifyPin(admin, adminPin, env))) return { ok: false, response: json({ success: false, message: "Verifikasi admin gagal" }, 403) };
+  // Jangan migrasikan PIN legacy pada tahap verifikasi ini. Jika PIN baru
+  // sedang disimpan, migrasi legacy + pembuatan hash baru berarti dua kali
+  // PBKDF2 dalam satu request dan dapat melewati CPU limit Cloudflare Free.
+  if (!admin || !(await verifyPin(admin, adminPin, env, false))) return { ok: false, response: json({ success: false, message: "Verifikasi admin gagal" }, 403) };
   return { ok: true, admin };
 }
 async function getUsers(env) {
