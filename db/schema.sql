@@ -77,7 +77,10 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL DEFAULT 'petugas',
   pin TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  pin_hash TEXT,
+  pin_salt TEXT,
+  pin_iterations INTEGER NOT NULL DEFAULT 120000
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
